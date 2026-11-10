@@ -1,0 +1,22 @@
+name: core_analytics
+description: "High performance, privacy-compliant analytics module for mobile apps based on Janzun Gateway POST /v1/events."
+version: 2.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  device_info_plus: ^11.3.0
+  package_info_plus: ^8.3.0
+  shared_preferences: ^2.3.4
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

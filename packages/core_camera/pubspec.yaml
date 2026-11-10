@@ -1,0 +1,27 @@
+name: core_camera
+description: "High-performance native camera plugin with Zero-Shutter-Lag (ZSL) capture, native 4:3 sensor alignment, atomic hardware AF/AE, and pluggable zero-copy ML Kit frame analysis."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cross_file: ^0.3.5+2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.core.camera
+        pluginClass: CoreCameraPlugin
+      ios:
+        pluginClass: CoreCameraPlugin

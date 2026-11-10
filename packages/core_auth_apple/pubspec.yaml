@@ -1,0 +1,22 @@
+name: core_auth
+description: "Apple flavor authentication package supporting native Sign-In with Apple."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  core_auth_base:
+    path: ../core_auth_base
+  supabase_flutter: ^2.8.0
+  sign_in_with_apple: ^6.1.4
+  crypto: ^3.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
