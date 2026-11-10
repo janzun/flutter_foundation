@@ -1,5 +1,5 @@
 name: core_arch
-description: "Core architecture package for MVVM/MVI, pure Dart base utilities, networking, and state management."
+description: "Core architecture package for MVVM/MVI, pure Dart base utilities, networking, responsive UI, and state management."
 version: 1.0.0
 publish_to: 'none'
 
@@ -15,6 +15,9 @@ dependencies:
   dio: ^5.8.0
   retrofit: ^4.4.2
   shared_preferences: ^2.3.4
+  intl: ^0.20.2
+  connectivity_plus: ^6.1.1
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:

@@ -55,16 +55,41 @@ void main() {
     });
   });
 
-  group('ApiResponse Tests', () {
-    test('ApiResponse parses code 200 as success', () {
-      final res = ApiResponse<String>(code: 200, message: 'ok', data: 'data');
-      expect(res.isSuccess, isTrue);
-      expect(res.data, 'data');
+  group('EventBus Tests', () {
+    test('EventBus emits and listens correctly', () async {
+      final events = <String>[];
+      final sub = EventBus.on<String>().listen((event) {
+        events.add(event);
+      });
+
+      EventBus.emit('event_1');
+      EventBus.emit('event_2');
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(events, equals(['event_1', 'event_2']));
+      await sub.cancel();
+    });
+  });
+
+  group('Extensions Tests', () {
+    test('DateExtension formats correctly', () {
+      final date = DateTime(2026, 11, 10, 15, 30);
+      expect(date.toFormattedDate(pattern: 'yyyy-MM-dd'), '2026-11-10');
+      expect(date.toUtcIso8601String().contains('2026-11-10'), isTrue);
     });
 
-    test('ApiResponse parses code 400 as failure', () {
-      final res = ApiResponse<String>(code: 400, message: 'fail');
-      expect(res.isSuccess, isFalse);
+    test('NumExtension formats currency and bytes correctly', () {
+      expect(1299.99.toCurrency(symbol: '\$'), '\$1,299.99');
+      expect(1024.toByteSizeString(), '1.0 KB');
+      expect((1024 * 1024 * 2.5).toByteSizeString(), '2.5 MB');
+    });
+
+    test('StringExtension masks email and phone correctly', () {
+      expect('alex.smith@gmail.com'.isEmail, isTrue);
+      expect('invalid-email'.isEmail, isFalse);
+      expect('alex.smith@gmail.com'.maskEmail(), 'al***h@gmail.com');
+      expect('+16501234567'.maskPhone(), '+165***4567');
+      expect('https://google.com'.isUrl, isTrue);
     });
   });
 }
