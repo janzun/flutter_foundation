@@ -6,47 +6,97 @@
 
 ---
 
-## 模块能力概览
+## 🎯 核心 API 极简速查表（AI & 人类索引零幻觉）
 
-1. **MVVM 核心规范**：
-   - `BaseViewModel`、`BaseUiState`、`BaseUiEvent`
-   - `ViewState`：标准视图五态（`idle`, `loading`, `empty`, `error`, `success`）
-   - `Result<T>`：Dart 3 密封代数类型（`Ok(value)` / `Err(AppException)`），全面采用 `await` 异步模式与模式匹配
-2. **工业级网络与传输层**：
-   - `DioClient`：拦截器、动态 Token 注入、401 会话失效回调、`DioClient.guard` 通用异常保护罩
-   - `BaseRepository`：业务仓储抽象基类，配合 Retrofit 使用，提供 `safeCall` / `safeCallApi` 自动抹平异常并返回 `Result<T>`
-   - `ApiResponse<T>`：后端标准 `{code, message, data}` 业务通用封包定义
-   - `R2Uploader`：Cloudflare R2 / S3 兼容对象存储预签名 URL 直传（零中转服务器出网带宽费，支持进度监听）
-   - `FileDownloader`：大文件安全原子下载器（临时文件隔离、防断网损坏重命名、进度监听）
-   - `NetworkConnectivity`：网络连通性感知（WiFi/蜂窝/以太网/断网响应式流）
-3. **全端自适应响应式布局 (Responsive)**：
-   - `ScreenType`：标准屏幕断点（`compact < 600`，`medium < 840`，`expanded >= 840`）
-   - `ResponsiveContext`：`context.isDesktop` / `isMobile` / `context.responsiveValue(...)`
-   - `AdaptiveScaffold`：自适应脚手架（手机底部 Tab 自动变身平板/桌面左侧 `NavigationRail`）
-   - `ResponsiveLayout`：自适应内容容器（手机单列流 vs 桌面 Master-Detail 左右双栏）
-   - `ContentMaxWidth`：宽屏最大舒适阅读宽度限制器（防大屏横向拉伸断裂）
-4. **页面级转场动画 (Transitions)**：
-   - `AppTransitions`：适配 `go_router` 的跨端转场工具（`slideHorizontal` 水平滑入、`slideUp` 底部上滑、`fade` 极速淡入、`adaptive` 跨端自适应）
-5. **本地存储与路径 (Storage)**：
-   - `SpUtil`：基于官方 `shared_preferences` 的内存同步极速读 + 后台异步落盘工具（含常用业务标记）
-   - `PathUtil`：跨平台私有安全沙盒目录解析（`appDocumentsDirectory`、`appCacheDirectory` 等）
-6. **解耦通信 (Events)**：
-   - `EventBus`：纯 Dart 类型安全事件总线（发布/订阅解耦）
-7. **基础工具与弹窗体系 (Utils)**：
-   - `DialogUtil`：工业级多方位通用弹窗（支持 `center`, `bottom`, `top`, `right`, `left`，内置弹性动画与免 Context 弹窗，提供标准 `DialogUtil.confirm`）
-   - `Logger`：生产级彩色环境隔离日志系统（Debug 详细输出，Release 自动静默防泄密）
-   - `ToastUtil`：免 `BuildContext` 的悬浮轻提示与全屏阻塞式 Loading
-8. **出海通用基础扩展 (Extensions)**：
-   - `DateExtension`：国际化时间处理（`timeAgo`、`MMM d, yyyy`、ISO-8601，Intl 标准）
-   - `NumExtension`：国际标准货币（`$1,299.99`）与文件大小换算（`2.5 MB`）
-   - `StringExtension`：海外合规脱敏（`maskEmail`、`maskPhone`）、邮箱/URL/纯数字正则校验
-9. **组件与UI级微动效 (Widgets & UI Animations)**：
-   - `FadeSlideTransition`：声明式局部元素/列表项淡入滑入动效（支持瀑布流延时）
-   - `BouncingTap`：质感微缩放弹性回弹点击组件
-   - `StateLoadWidget`：配合 `ViewState` 的四态标准容器
-   - `DebounceTap` / `DebounceButton`：防快速连点与轻量触觉反馈包装组件
-   - `HideKeyboardTap`：点击空白处自动收起软键盘
-   - `AppScrollBehavior`：桌面端与 Web 鼠标/触摸板平滑拖拽滚动行为支持
+| 模块分类 | 核心类 / 扩展 | 一句话核心功能与调用方式 |
+| :--- | :--- | :--- |
+| **MVVM 状态** | `Result<T>` | Dart 3 密封类：`Ok(value)` / `Err(AppException)`，模式匹配或 `result.when(...)` |
+| **MVVM 视图** | `ViewState` | 视图五态：`idle`, `loading`, `empty`, `error`, `success`，布尔 getter：`isLoading` 等 |
+| **异常治理** | `AppException` | 统一异常结构：`code`, `message`, `statusCode`, `originalError` |
+| **网络请求** | `DioClient` | 工业级 Dio 封装，`DioClient.guard<T>(() => ...)` 统一抹平异常并转为 `Result<T>` |
+| **业务仓储** | `BaseRepository` | 仓储抽象基类：`safeCall(() => _api.getUser())`（配合 Retrofit 零 try-catch） |
+| **业务封包** | `ApiResponse<T>` | 后端常见 `{code, message, data}` 通用泛型实体 |
+| **文件直传** | `R2Uploader` | `uploadBytes(...)`：通过预签名 PUT URL 直传 Cloudflare R2 / S3（0 业务服务器出网带宽） |
+| **原子下载** | `FileDownloader` | `downloadFile(...)`：大文件临时隔离安全下载，完成原子重命名防损坏，支持进度与取消 |
+| **网络感知** | `NetworkConnectivity`| `isConnected` 异步判定，`onConnectivityChanged` 响应式监听 WiFi/蜂窝/断网 |
+| **断点识别** | `ScreenType` | 屏幕尺寸形态：`compact (<600)`，`medium (<840)`，`expanded (>=840)` |
+| **响应式上下文**| `context.*` | `context.isDesktop` / `context.isMobile` / `context.responsiveValue(...)` |
+| **自适应脚手架**| `AdaptiveScaffold` | 手机端底部 `NavigationBar`，平板/桌面端自动切换为左侧 `NavigationRail` |
+| **双栏联动** | `ResponsiveLayout` | 自适应内容容器：手机单列流 vs 桌面 Master-Detail 左右双栏 |
+| **宽屏限宽** | `ContentMaxWidth` | `ContentMaxWidth(maxWidth: 900, child: ...)` 防止超宽大屏横向拉皮变丑 |
+| **路由转场** | `AppTransitions` | 配合 GoRouter：`slideHorizontal`, `slideUp`, `fade`, `adaptive`（桌面极速淡入） |
+| **多方位弹窗** | `DialogUtil` | `show(position: ...)`（center/bottom/top/right/left，免 Context），`confirm(...)` |
+| **轻提示/遮罩** | `ToastUtil` | 免 Context：`ToastUtil.success('...')`, `showLoading(...)`, `hideLoading()` |
+| **本地缓存** | `SpUtil` | 启动 `await SpUtil.init()`，之后 `getString/getBool` **完全同步 O(1) 读**，异步写落盘 |
+| **沙盒路径** | `PathUtil` | `appDocumentsDirectory`, `appCacheDirectory`, `temporaryDirectory` 0 敏感权限 |
+| **事件总线** | `EventBus` | `EventBus.emit(event)` 发布，`EventBus.on<T>()` 订阅解耦通信 |
+| **环境日志** | `Logger` | `Logger.d / i / w / e`：Debug 彩色带时间戳堆栈输出，Release **自动彻底静默** |
+| **国际化日期** | `DateTime.*` | `date.timeAgo()` ("5m ago")，`toFormattedDate()` ("Nov 11, 2026")，Intl 标准 |
+| **货币与体积** | `num.*` | `(1299.9).toCurrency(symbol: '\$')` -> `\$1,299.90`，`bytes.toByteSizeString()` |
+| **合规脱敏** | `String.*` | `email.maskEmail()`，`phone.maskPhone()`，`isEmail`, `isUrl`, `isNumeric` |
+| **微动效交互** | `BouncingTap` | 类似 iOS 负一屏的 0.96 微按压缩放与弹性回弹触觉手感 |
+| **入场动画** | `FadeSlideTransition`| 局域元素/列表项淡入滑入动效，支持 `delay` 瀑布流交错 |
+| **交互组件** | `HideKeyboardTap` | 点击页面空白处自动收起软键盘 |
+| **桌面滚动** | `AppScrollBehavior`| 开启 Web / 桌面端鼠标触摸板平滑拖拽滚动 |
+
+---
+
+## 🚀 App 根入口黄金装配模版 (`main.dart`)
+
+在业务 App 中，只需在入口配置以下 4 处，即可一次性挂载所有基础设施：
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:core_arch/core_arch.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. 预初始化内存键值缓存单例（确保之后同步极速读写）
+  await SpUtil.init();
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Global App',
+
+      // 2. 挂载免 Context 全局 SnackBar 与 Dialog Key
+      scaffoldMessengerKey: ToastUtil.messengerKey,
+      navigatorKey: ToastUtil.navigatorKey,
+
+      // 3. 挂载桌面端与 Web 端平滑拖拽滚动行为
+      scrollBehavior: const AppScrollBehavior(),
+
+      // 4. 外层包裹空白点击自动收起软键盘
+      builder: (context, child) => HideKeyboardTap(child: child!),
+
+      theme: ThemeData(useMaterial3: true),
+      home: const HomeScreen(),
+    );
+  }
+}
+```
+
+---
+
+## 💡 真实可运行实机样例（避免 AI 幻觉的黄金参考）
+
+在本项目宿主工程中，已包含完整、可运行、可交互的测试样板页面：
+- **实机样例文件位置**：[`lib/example/core_arch.dart`](file:///Users/alex/WorkSpace/Project/flutter_foundation/lib/example/core_arch.dart)
+- **应用启动入口**：[`lib/main.dart`](file:///Users/alex/WorkSpace/Project/flutter_foundation/lib/main.dart)
+
+AI 编写业务代码时，可直接参考该样例中的调用模式：
+1. **MVVM 四态 + DioClient.guard** 模拟网络请求与异常捕获；
+2. **多方位弹窗 (DialogUtil)** 底部弹窗、侧边抽屉与确认对话框；
+3. **响应式断点与取值 (ResponsiveContext)** 跨端自适应布局；
+4. **本地存储 (SpUtil)** 内存同步极速读取；
+5. **微动效与防连点 (BouncingTap & DebounceTap)**。
 
 ---
 
@@ -64,173 +114,4 @@ dependencies:
 
 ```dart
 import 'package:core_arch/core_arch.dart';
-```
-
----
-
-## 核心 API 与快速使用指南
-
-### 1. 结果模型与模式匹配 (`Result<T>` & `ViewState`)
-
-全面采用现代 Dart 3 `sealed class` 配合 `await` 异步语法：
-
-```dart
-final Result<String> result = await someAsyncOperation();
-
-// 模式匹配解构 (switch 表达式)
-final message = switch (result) {
-  Ok(value: final text) => '成功: $text',
-  Err(error: final err) => '失败: [${err.code}] ${err.message}',
-};
-
-// 驱动 ViewState
-if (result.isOk) {
-  viewState = result.valueOrNull!.isEmpty ? ViewState.empty : ViewState.success;
-} else {
-  viewState = ViewState.error;
-}
-```
-
----
-
-### 2. 页面级转场动画 (`AppTransitions` 配合 `go_router`)
-
-```dart
-// 手机端滑入、桌面端/Web 自动降级为极速淡入淡出（防大屏眩晕）
-GoRoute(
-  path: '/settings',
-  pageBuilder: (context, state) => AppTransitions.adaptive(
-    context: context,
-    key: state.pageKey,
-    child: const SettingsScreen(),
-  ),
-);
-
-// 全屏 Modal 向上滑入（适合登录、发布页）
-GoRoute(
-  path: '/login',
-  pageBuilder: (context, state) => AppTransitions.slideUp(
-    key: state.pageKey,
-    child: const LoginScreen(),
-  ),
-);
-```
-
----
-
-### 3. 多方位通用弹窗与确认框 (`DialogUtil`)
-
-免 `BuildContext`，内置物理弹性转场：
-
-```dart
-// 1. 底部弹出面板 (SlideUp)
-DialogUtil.show(
-  position: DialogPosition.bottom,
-  builder: (ctx) => const SharePanel(),
-);
-
-// 2. 右侧抽屉面板 (适合平板/桌面端筛选侧边栏)
-DialogUtil.show(
-  position: DialogPosition.right,
-  builder: (ctx) => const FilterDrawer(),
-);
-
-// 3. 通用确认弹窗
-final confirmed = await DialogUtil.confirm(
-  title: 'Delete Account',
-  content: 'Are you sure you want to delete your account? This action cannot be undone.',
-  confirmText: 'Delete',
-  isDestructive: true,
-);
-```
-
----
-
-### 4. 组件级微交互与动效 (`FadeSlideTransition` & `BouncingTap`)
-
-```dart
-// 1. 列表瀑布流交错入场动画
-ListView.builder(
-  itemCount: items.length,
-  itemBuilder: (context, index) {
-    return FadeSlideTransition(
-      delay: Duration(milliseconds: index * 40), // 交错延时
-      child: ItemCard(item: items[index]),
-    );
-  },
-);
-
-// 2. 质感卡片弹性缩放点击 (iOS 负一屏同款质感)
-BouncingTap(
-  onTap: () => print('Card Tapped'),
-  child: const CardWidget(),
-);
-```
-
----
-
-### 5. 全端响应式自适应布局 (Responsive)
-
-```dart
-AdaptiveScaffold(
-  selectedIndex: currentIndex,
-  onDestinationSelected: (index) => setState(() => currentIndex = index),
-  destinations: const [
-    AdaptiveDestination(icon: Icons.home, label: 'Home'),
-    AdaptiveDestination(icon: Icons.settings, label: 'Settings'),
-  ],
-  body: ResponsiveLayout(
-    // 手机竖屏：单列列表
-    compact: (context) => const UserMobileListView(),
-    // 桌面/Web宽屏：左右双栏 (Master-Detail)
-    expanded: (context) => Row(
-      children: const [
-        SizedBox(width: 320, child: UserNavList()),
-        VerticalDivider(width: 1),
-        Expanded(child: UserDetailContent()),
-      ],
-    ),
-  ),
-);
-```
-
----
-
-### 6. 网络层与大文件传输 (`DioClient`, `FileDownloader`, `R2Uploader`)
-
-```dart
-// 1. 安全原子下载文件 (防断网损坏)
-final downloadResult = await FileDownloader.downloadFile(
-  urlPath: 'https://example.com/files/manual.pdf',
-  savePath: '${(await PathUtil.appDocumentsDirectory).path}/manual.pdf',
-  onReceiveProgress: (received, total) {
-    print('下载进度: ${(received / total * 100).toStringAsFixed(1)}%');
-  },
-);
-
-// 2. Cloudflare R2 / S3 预签名直传 (零出网带宽费)
-final uploadResult = await R2Uploader.uploadBytes(
-  presignedPutUrl: 'https://r2.example.com/uploads/photo.jpg?signature=...',
-  bytes: imageBytes,
-  contentType: 'image/jpeg',
-);
-```
-
----
-
-### 7. 本地存储、环境日志与出海扩展
-
-```dart
-// 1. SpUtil 极速存储：读取完全同步零等待
-await SpUtil.init();
-final String token = SpUtil.getString('token');
-
-// 2. Logger：彩色日志 (Debug 详细打印，Release 自动静默)
-Logger.d('正在加载用户数据: $id');
-Logger.e('数据解析异常', error: e, stackTrace: stack);
-
-// 3. 国际化友好时间与货币 (Intl 标准)
-print(DateTime.now().subtract(const Duration(minutes: 5)).timeAgo()); // "5m ago"
-print(1299.9.toCurrency(symbol: '\$')); // "$1,299.90"
-print('alex.smith@gmail.com'.maskEmail()); // "al***h@gmail.com"
 ```
