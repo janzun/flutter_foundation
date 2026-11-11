@@ -27,6 +27,7 @@ export 'responsive/responsive_layout.dart';
 export 'responsive/screen_type.dart';
 
 // Storage
+export 'storage/backup_util.dart';
 export 'storage/file_util.dart';
 export 'storage/path_util.dart';
 export 'storage/sp_util.dart';

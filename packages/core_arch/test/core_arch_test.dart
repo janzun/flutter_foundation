@@ -77,6 +77,70 @@ void main() {
       // 4. 清理
       await FileUtil.deleteDir(tempDir.path);
     });
+
+    test('zip and unzip works seamlessly', () async {
+      final tempDir = Directory.systemTemp.createTempSync('zip_test_');
+      await FileUtil.writeString('${tempDir.path}/f1.txt', 'Content 1');
+      await FileUtil.writeString('${tempDir.path}/sub/f2.txt', 'Content 2');
+
+      final zipPath = '${tempDir.path}/test_archive.zip';
+      final zipFile = await FileUtil.zipDirectory(
+        sourceDir: tempDir,
+        targetZipPath: zipPath,
+      );
+      expect(zipFile.existsSync(), isTrue);
+
+      final extractDir = '${tempDir.path}/extracted';
+      await FileUtil.unzipFile(zipFile: zipFile, targetDirPath: extractDir);
+      expect(FileUtil.exists('$extractDir/f1.txt'), isTrue);
+      expect(FileUtil.exists('$extractDir/sub/f2.txt'), isTrue);
+
+      await FileUtil.deleteDir(tempDir.path);
+    });
+  });
+
+  group('BackupUtil Tests', () {
+    test('createBackup and extractBackup completes full roundtrip', () async {
+      final tempDir = Directory.systemTemp.createTempSync('backup_test_');
+      final dbFakeFile = await FileUtil.writeString('${tempDir.path}/fake_db.bin', 'ISAR_DB_DATA');
+      final attachDir = Directory('${tempDir.path}/photos');
+      await attachDir.create();
+      await FileUtil.writeString('${attachDir.path}/photo1.jpg', 'PHOTO_BYTES');
+
+      final backupFilePath = '${tempDir.path}/my_backup.bak';
+
+      // 1. 创建聚合备份
+      final createResult = await BackupUtil.createBackup(
+        targetBackupFilePath: backupFilePath,
+        databaseFile: dbFakeFile,
+        attachmentDirs: [attachDir],
+        kvData: {'theme': 'dark', 'version': 1},
+        schemaVersion: 1,
+        appVersion: '1.0.0',
+      );
+
+      expect(createResult.isOk, isTrue);
+      final backupFile = createResult.valueOrNull!;
+      expect(backupFile.existsSync(), isTrue);
+
+      // 2. 解包提炼
+      final extractResult = await BackupUtil.extractBackup(
+        backupFile: backupFile,
+        targetExtractDir: '${tempDir.path}/extracted_data',
+        expectedMaxSchemaVersion: 2,
+      );
+
+      expect(extractResult.isOk, isTrue);
+      final extracted = extractResult.valueOrNull!;
+      expect(extracted.manifest.schemaVersion, 1);
+      expect(extracted.manifest.appVersion, '1.0.0');
+      expect(extracted.databaseFile, isNotNull);
+      expect(await extracted.databaseFile!.readAsString(), 'ISAR_DB_DATA');
+      expect(extracted.attachmentsDir, isNotNull);
+      expect(extracted.kvData?['theme'], 'dark');
+
+      await FileUtil.deleteDir(tempDir.path);
+    });
   });
 
   group('EventBus Tests', () {

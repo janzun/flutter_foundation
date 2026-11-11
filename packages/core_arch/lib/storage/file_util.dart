@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:archive/archive.dart';
 import '../extensions/num_extension.dart';
 import 'path_util.dart';
 
@@ -239,5 +240,90 @@ class FileUtil {
     } catch (_) {
       return false;
     }
+  }
+
+  // === 6. 通用 Zip 压缩与解压能力 ===
+
+  /// 将离散文件集合打包为单一 .zip 文件
+  ///
+  /// - [files]: 待打包文件列表
+  /// - [targetZipPath]: 生成的目标 .zip 路径
+  /// - [pathInZipMap]: 可选的文件在压缩包内部的映射路径（如 `{file.path: 'sub/name.txt'}`）
+  static Future<File> zipFiles({
+    required List<File> files,
+    required String targetZipPath,
+    Map<String, String>? pathInZipMap,
+  }) async {
+    final archive = Archive();
+
+    for (final file in files) {
+      if (!file.existsSync()) continue;
+      final bytes = await file.readAsBytes();
+      final nameInZip = pathInZipMap?[file.path] ?? file.uri.pathSegments.last;
+      archive.addFile(ArchiveFile(nameInZip, bytes.length, bytes));
+    }
+
+    final zipData = ZipEncoder().encode(archive);
+    return await writeBytes(targetZipPath, Uint8List.fromList(zipData));
+  }
+
+  /// 将整个文件夹目录递归打包压缩为单一 .zip 文件
+  static Future<File> zipDirectory({
+    required Directory sourceDir,
+    required String targetZipPath,
+  }) async {
+    if (!sourceDir.existsSync()) {
+      throw FileSystemException('待压缩的源目录不存在', sourceDir.path);
+    }
+
+    final archive = Archive();
+    final entities =
+        await sourceDir.list(recursive: true, followLinks: false).toList();
+    final rootPath = sourceDir.path;
+
+    for (final entity in entities) {
+      if (entity is File) {
+        final relativePath = entity.path.substring(rootPath.length + 1);
+        final bytes = await entity.readAsBytes();
+        archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
+      }
+    }
+
+    final zipData = ZipEncoder().encode(archive);
+    return await writeBytes(targetZipPath, Uint8List.fromList(zipData));
+  }
+
+  /// 解压 .zip 文件到指定目录（内置防 Zip Slip 路径穿越注入攻击安全检查）
+  static Future<Directory> unzipFile({
+    required File zipFile,
+    required String targetDirPath,
+  }) async {
+    if (!zipFile.existsSync()) {
+      throw FileSystemException('待解压的 Zip 文件不存在', zipFile.path);
+    }
+
+    final targetDir = await createDirIfNotExists(targetDirPath);
+    final bytes = await zipFile.readAsBytes();
+    final archive = ZipDecoder().decodeBytes(bytes);
+
+    for (final file in archive) {
+      final filename = file.name;
+      // 防御 Zip Slip 路径穿越漏洞
+      if (filename.contains('..')) {
+        continue;
+      }
+
+      final outPath = '${targetDir.path}/$filename';
+      if (file.isFile) {
+        final outFile = File(outPath);
+        await createDirIfNotExists(outFile.parent.path);
+        final data = file.content as List<int>;
+        await outFile.writeAsBytes(data, flush: true);
+      } else {
+        await createDirIfNotExists(outPath);
+      }
+    }
+
+    return targetDir;
   }
 }
