@@ -30,11 +30,17 @@ export 'responsive/screen_type.dart';
 export 'storage/path_util.dart';
 export 'storage/sp_util.dart';
 
+// Transitions (Page-level)
+export 'transitions/app_transitions.dart';
+
 // Utils
+export 'utils/dialog_util.dart';
 export 'utils/logger.dart';
 export 'utils/toast_util.dart';
 
-// Widgets
+// Widgets & UI-level Animations
+export 'widgets/animations/bouncing_tap.dart';
+export 'widgets/animations/fade_slide_transition.dart';
 export 'widgets/app_scroll_behavior.dart';
 export 'widgets/debounce_button.dart';
 export 'widgets/hide_keyboard_tap.dart';

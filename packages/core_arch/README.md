@@ -25,19 +25,24 @@
    - `AdaptiveScaffold`：自适应脚手架（手机底部 Tab 自动变身平板/桌面左侧 `NavigationRail`）
    - `ResponsiveLayout`：自适应内容容器（手机单列流 vs 桌面 Master-Detail 左右双栏）
    - `ContentMaxWidth`：宽屏最大舒适阅读宽度限制器（防大屏横向拉伸断裂）
-4. **本地存储与路径 (Storage)**：
+4. **页面级转场动画 (Transitions)**：
+   - `AppTransitions`：适配 `go_router` 的跨端转场工具（`slideHorizontal` 水平滑入、`slideUp` 底部上滑、`fade` 极速淡入、`adaptive` 跨端自适应）
+5. **本地存储与路径 (Storage)**：
    - `SpUtil`：基于官方 `shared_preferences` 的内存同步极速读 + 后台异步落盘工具（含常用业务标记）
    - `PathUtil`：跨平台私有安全沙盒目录解析（`appDocumentsDirectory`、`appCacheDirectory` 等）
-5. **解耦通信 (Events)**：
+6. **解耦通信 (Events)**：
    - `EventBus`：纯 Dart 类型安全事件总线（发布/订阅解耦）
-6. **基础工具与环境隔离 (Utils)**：
+7. **基础工具与弹窗体系 (Utils)**：
+   - `DialogUtil`：工业级多方位通用弹窗（支持 `center`, `bottom`, `top`, `right`, `left`，内置弹性动画与免 Context 弹窗，提供标准 `DialogUtil.confirm`）
    - `Logger`：生产级彩色环境隔离日志系统（Debug 详细输出，Release 自动静默防泄密）
    - `ToastUtil`：免 `BuildContext` 的悬浮轻提示与全屏阻塞式 Loading
-7. **出海通用基础扩展 (Extensions)**：
+8. **出海通用基础扩展 (Extensions)**：
    - `DateExtension`：国际化时间处理（`timeAgo`、`MMM d, yyyy`、ISO-8601，Intl 标准）
    - `NumExtension`：国际标准货币（`$1,299.99`）与文件大小换算（`2.5 MB`）
    - `StringExtension`：海外合规脱敏（`maskEmail`、`maskPhone`）、邮箱/URL/纯数字正则校验
-8. **通用交互组件 (Widgets)**：
+9. **组件与UI级微动效 (Widgets & UI Animations)**：
+   - `FadeSlideTransition`：声明式局部元素/列表项淡入滑入动效（支持瀑布流延时）
+   - `BouncingTap`：质感微缩放弹性回弹点击组件
    - `StateLoadWidget`：配合 `ViewState` 的四态标准容器
    - `DebounceTap` / `DebounceButton`：防快速连点与轻量触觉反馈包装组件
    - `HideKeyboardTap`：点击空白处自动收起软键盘
@@ -88,38 +93,110 @@ if (result.isOk) {
 
 ---
 
-### 2. 网络层与 Retrofit 仓储调用 (`DioClient` & `BaseRepository`)
+### 2. 页面级转场动画 (`AppTransitions` 配合 `go_router`)
 
 ```dart
-// 1. 初始化客户端
-final dioClient = DioClient(
-  baseUrl: 'https://api.example.com',
-  tokenProvider: () async => await SpUtil.getString('auth_token'),
-  onUnauthorized: () {
-    ToastUtil.error('登录已过期，请重新登录');
-  },
+// 手机端滑入、桌面端/Web 自动降级为极速淡入淡出（防大屏眩晕）
+GoRoute(
+  path: '/settings',
+  pageBuilder: (context, state) => AppTransitions.adaptive(
+    context: context,
+    key: state.pageKey,
+    child: const SettingsScreen(),
+  ),
 );
 
-// 2. 编写业务 Repository (零 try-catch 样板代码)
-class UserRepository extends BaseRepository {
-  final UserApiService _api;
-  UserRepository(this._api);
-
-  // 标准 RESTful 调用：Retrofit 自动解析 UserModel，safeCall 自动捕获异常输出 Result<UserModel>
-  Future<Result<UserModel>> fetchUser(String id) async {
-    return await safeCall(() async => await _api.getUser(id));
-  }
-
-  // 业务包裹接口调用：safeCallApi 自动校验 code == 200 并提取 data
-  Future<Result<OrderModel>> fetchOrder(String id) async {
-    return await safeCallApi(() async => await _api.getOrder(id));
-  }
-}
+// 全屏 Modal 向上滑入（适合登录、发布页）
+GoRoute(
+  path: '/login',
+  pageBuilder: (context, state) => AppTransitions.slideUp(
+    key: state.pageKey,
+    child: const LoginScreen(),
+  ),
+);
 ```
 
 ---
 
-### 3. 大文件下载与云端直传 (`FileDownloader` & `R2Uploader`)
+### 3. 多方位通用弹窗与确认框 (`DialogUtil`)
+
+免 `BuildContext`，内置物理弹性转场：
+
+```dart
+// 1. 底部弹出面板 (SlideUp)
+DialogUtil.show(
+  position: DialogPosition.bottom,
+  builder: (ctx) => const SharePanel(),
+);
+
+// 2. 右侧抽屉面板 (适合平板/桌面端筛选侧边栏)
+DialogUtil.show(
+  position: DialogPosition.right,
+  builder: (ctx) => const FilterDrawer(),
+);
+
+// 3. 通用确认弹窗
+final confirmed = await DialogUtil.confirm(
+  title: 'Delete Account',
+  content: 'Are you sure you want to delete your account? This action cannot be undone.',
+  confirmText: 'Delete',
+  isDestructive: true,
+);
+```
+
+---
+
+### 4. 组件级微交互与动效 (`FadeSlideTransition` & `BouncingTap`)
+
+```dart
+// 1. 列表瀑布流交错入场动画
+ListView.builder(
+  itemCount: items.length,
+  itemBuilder: (context, index) {
+    return FadeSlideTransition(
+      delay: Duration(milliseconds: index * 40), // 交错延时
+      child: ItemCard(item: items[index]),
+    );
+  },
+);
+
+// 2. 质感卡片弹性缩放点击 (iOS 负一屏同款质感)
+BouncingTap(
+  onTap: () => print('Card Tapped'),
+  child: const CardWidget(),
+);
+```
+
+---
+
+### 5. 全端响应式自适应布局 (Responsive)
+
+```dart
+AdaptiveScaffold(
+  selectedIndex: currentIndex,
+  onDestinationSelected: (index) => setState(() => currentIndex = index),
+  destinations: const [
+    AdaptiveDestination(icon: Icons.home, label: 'Home'),
+    AdaptiveDestination(icon: Icons.settings, label: 'Settings'),
+  ],
+  body: ResponsiveLayout(
+    // 手机竖屏：单列列表
+    compact: (context) => const UserMobileListView(),
+    // 桌面/Web宽屏：左右双栏 (Master-Detail)
+    expanded: (context) => Row(
+      children: const [
+        SizedBox(width: 320, child: UserNavList()),
+        VerticalDivider(width: 1),
+        Expanded(child: UserDetailContent()),
+      ],
+    ),
+  ),
+);
+```
+
+---
+
+### 6. 网络层与大文件传输 (`DioClient`, `FileDownloader`, `R2Uploader`)
 
 ```dart
 // 1. 安全原子下载文件 (防断网损坏)
@@ -141,92 +218,19 @@ final uploadResult = await R2Uploader.uploadBytes(
 
 ---
 
-### 4. 全端响应式自适应布局 (Responsive)
-
-同一套代码，自动兼容手机、折叠屏、平板与桌面/Web：
+### 7. 本地存储、环境日志与出海扩展
 
 ```dart
-// 1. 自适应脚手架：手机底部 Tab 自动变身桌面左侧导航栏
-AdaptiveScaffold(
-  selectedIndex: currentIndex,
-  onDestinationSelected: (index) => setState(() => currentIndex = index),
-  destinations: const [
-    AdaptiveDestination(icon: Icons.home, label: 'Home'),
-    AdaptiveDestination(icon: Icons.settings, label: 'Settings'),
-  ],
-  body: ResponsiveLayout(
-    // 手机竖屏：单列列表
-    compact: (context) => const UserMobileListView(),
-    // 桌面/Web宽屏：左右双栏 (Master-Detail)
-    expanded: (context) => Row(
-      children: const [
-        SizedBox(width: 320, child: UserNavList()),
-        VerticalDivider(width: 1),
-        Expanded(child: UserDetailContent()),
-      ],
-    ),
-  ),
-);
-
-// 2. 上下文便捷扩展与取值
-final double padding = context.responsiveValue(compact: 16.0, expanded: 32.0);
-if (context.isDesktop) {
-  // 桌面端专属行为
-}
-```
-
----
-
-### 5. 本地存储、环境日志与通信
-
-```dart
-// 1. SpUtil 极速存储：启动时初始化一次，读取完全同步零等待
+// 1. SpUtil 极速存储：读取完全同步零等待
 await SpUtil.init();
 final String token = SpUtil.getString('token');
-await SpUtil.setString('token', 'new_token');
 
-// 2. Logger：生产级彩色日志 (Debug 详细打印，Release 自动静默)
+// 2. Logger：彩色日志 (Debug 详细打印，Release 自动静默)
 Logger.d('正在加载用户数据: $id');
 Logger.e('数据解析异常', error: e, stackTrace: stack);
 
-// 3. EventBus：类型安全解耦通信
-EventBus.emit(UserLoginEvent(user));
-final subscription = EventBus.on<UserLoginEvent>().listen((event) {
-  print('用户已登录: ${event.user.name}');
-});
-```
-
----
-
-### 6. 出海扩展与合规脱敏 (Extensions)
-
-```dart
-// 国际化友好时间 (Intl 标准)
-final date = DateTime.now().subtract(const Duration(minutes: 5));
-print(date.timeAgo()); // "5m ago"
-print(date.toFormattedDate()); // "Nov 10, 2026"
-
-// 货币与体积
+// 3. 国际化友好时间与货币 (Intl 标准)
+print(DateTime.now().subtract(const Duration(minutes: 5)).timeAgo()); // "5m ago"
 print(1299.9.toCurrency(symbol: '\$')); // "$1,299.90"
-print(2500000.toByteSizeString());      // "2.4 MB"
-
-// 出海合规脱敏
 print('alex.smith@gmail.com'.maskEmail()); // "al***h@gmail.com"
-print('+16501234567'.maskPhone());         // "+165***4567"
-```
-
----
-
-### 7. 业务 App 中关于多语言访问的最佳实践
-
-`core_arch` 将具体多语言词条绑定交由各业务 App 自行生成（强类型检查与 IDE 自动补全）。在业务 App 中只需定义扩展：
-
-```dart
-// 业务 App: lib/common/l10n_extension.dart
-extension AppL10nExtension on BuildContext {
-  AppLocalizations get l10n => AppLocalizations.of(this)!;
-}
-
-// 在 View 层：直接 context.l10n.welcomeMessage
-// 在 ViewModel 层（配合生成的 S 类）：S.current.welcomeMessage
 ```
