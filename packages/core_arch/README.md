@@ -27,6 +27,7 @@
 | **路由转场** | `AppTransitions` | 配合 GoRouter：`slideHorizontal`, `slideUp`, `fade`, `adaptive`（桌面极速淡入） |
 | **多方位弹窗** | `DialogUtil` | `show(position: ...)`（center/bottom/top/right/left，免 Context），`confirm(...)` |
 | **轻提示/遮罩** | `ToastUtil` | 免 Context：`ToastUtil.success('...')`, `showLoading(...)`, `hideLoading()` |
+| **本地文件存储** | `FileUtil` | 自动建目录、原子写入防损坏 (`writeBytes`, `writeString`)、安全读删与缓存统计清理 |
 | **本地缓存** | `SpUtil` | 启动 `await SpUtil.init()`，之后 `getString/getBool` **完全同步 O(1) 读**，异步写落盘 |
 | **沙盒路径** | `PathUtil` | `appDocumentsDirectory`, `appCacheDirectory`, `temporaryDirectory` 0 敏感权限 |
 | **事件总线** | `EventBus` | `EventBus.emit(event)` 发布，`EventBus.on<T>()` 订阅解耦通信 |

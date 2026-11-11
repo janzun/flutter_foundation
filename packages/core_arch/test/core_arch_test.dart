@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:core_arch/core_arch.dart';
 
@@ -52,6 +53,29 @@ void main() {
 
       expect(res.isErr, isTrue);
       expect(res.errorOrNull?.code, 'CUSTOM_ERR');
+    });
+  });
+
+  group('FileUtil Tests', () {
+    test('writeString and readString works atomically', () async {
+      final tempDir = Directory.systemTemp.createTempSync('file_util_test_');
+      final testFilePath = '${tempDir.path}/sub_dir/test.txt';
+
+      // 1. 自动递归建目录 + 原子写入
+      final file = await FileUtil.writeString(testFilePath, 'Hello FileUtil');
+      expect(file.existsSync(), isTrue);
+      expect(FileUtil.exists(testFilePath), isTrue);
+
+      // 2. 读取文本
+      final content = await FileUtil.readString(testFilePath);
+      expect(content, 'Hello FileUtil');
+
+      // 3. 读取不存在文件安全返回 null
+      final nonExist = await FileUtil.readString('${tempDir.path}/none.txt');
+      expect(nonExist, isNull);
+
+      // 4. 清理
+      await FileUtil.deleteDir(tempDir.path);
     });
   });
 
