@@ -1,132 +1,142 @@
-# Core Auth 认证与用户档案中心
+# core_auth_base
 
-`core_auth_base` 是跨应用、跨平台的统一核心用户认证中枢。基于 **Supabase Auth** 与中台数据架构设计，提供访客匿名体验、邮件验证码免密登录、三方 OAuth 插件化扩展能力，并负责用户业务主档与资产的自愈初始化。
+通用跨平台用户认证与中台档案同步基础底座，基于 Supabase Auth 驱动，提供统一不可变用户档案模型 (`UserData`)、会员与积分资产解析 (`EntitlementInfo`)，以及响应式用户流 (`userDataStream`)。
 
----
+## 🏷️ 最新版本 Tag
 
-## 一、 涉及数据与数据模型
+`auth_base@1.0.0`
 
-### 1. 底层存储与数据表
-* **`auth.users`** (Supabase 认证中心)：存储底层身份账号（邮箱、手机号、第三方登录 UID、加密 Hash）。
-* **`common.users`** (业务用户档案主表)：
-  * `id`: 业务层全局统一的用户 UUID。
-  * `app_id`: 归属应用标识。
-  * `supabase_uid`: 映射 `auth.users.id`。
-  * `display_name` / `avatar_url`: 用户昵称与头像。
-  * `auth_provider`: 登录方式 (`anonymous` / `email` / `apple` / `google`)。
-  * `risk_level`: 用户风控等级 (`normal` / `high` / `banned`)。
-* **`common.user_entitlements`** (统一资产与权益表)：
-  * 集中管理用户的所有资产（会员身份、通用积分、功能额度），与 Auth、Pay 双模块数据底层打通。
+## 📦 接入方式 (Installation)
 
-### 2. Dart 数据模型 (`@freezed`)
-* **`UserData`**：完整的用户业务档案对象。
-  * `entitlements`：`List<EntitlementInfo>` 统一权益列表，囊括会员、积分与配额。
-  * `isVip`：便捷计算属性，自动检索是否有有效未过期的会员。
-  * `vipTier`：当前有效 VIP 等级（如 `'pro'`, `'svip'`）。
-  * `vipExpireAt`：会员到期截止时间。
-  * `pointsBalance`：标准积分余额。
-  * `getBalance(code)`：按权益标识查询特定资产/配额余额。
-  * `isAnonymous`：当前是否为匿名访客。
-* **`EntitlementInfo`**：单项权益/资产模型。
-  * `id`：资产唯一标识。
-  * `type`：类别 (`membership` / `points` / `quota`)。
-  * `code`：业务标识（如 `pro`, `standard_point`, `ai_summary`）。
-  * `status`：状态 (`active` / `expired` / `frozen`)。
-  * `tier` / `billingCycle`：会员档位与计费周期。
-  * `balance`：当前余额。
-  * `expireAt`：到期时间。
-* **`AuthResult<T>`**：标准返回包装器，包含成功标识、状态码及错误信息。
+> 提示：在实际工程中，若针对特定平台发行，建议直接接入渠道实现包 `core_auth_apple`（iOS/macOS）或 `core_auth_google`（Android）；纯 Web/桌面端或自定义渠道可直接接入本基底包。
 
----
-
-## 二、 工作原理与核心链路
-
-```
-                   ┌──────────────────────────────────────┐
-                   │          Flutter App Client          │
-                   └──────────────────┬───────────────────┘
-                                      │
-            ┌─────────────────────────┼─────────────────────────┐
-            │ 1. 匿名/邮件/三方登录    │                         │
-            ▼                         ▼                         ▼
-   Supabase Auth SDK         Apple Native SDK          Google Sign-In SDK
-            │                         │                         │
-            └─────────────────────────┼─────────────────────────┘
-                                      │ 2. 拿到认证 Session (JWT)
-                                      ▼
-                   Postgres RPC: common.sync_user_profile
-            ┌───────────────────────────────────────────────────┐
-            │ • 自动判定是否新用户 (自愈建档)                   │
-            │ • 初始化 common.users & common.user_entitlements  │
-            │ • 聚合返回包含全量 entitlements 的 UserData 档案  │
-            └─────────────────────────┬─────────────────────────┘
-                                      │ 3. 广播给前端
-                                      ▼
-                         Auth.userDataStream
+```yaml
+dependencies:
+  core_auth_base:
+    git:
+      url: https://github.com/janzun/flutter_foundation.git
+      path: packages/core_auth_base
+      ref: auth_base@1.0.0
 ```
 
-1. **静默登录与自愈建档**：
-   应用冷启动时调用 `Auth.autoLogin()`。若本地存在会话则校验刷新，若不存在则无感拉起匿名登录，确保用户无需繁琐注册即可体验核心功能。
-2. **账号转正 (Linking / Upgrade)**：
-   匿名用户通过验证码登录或绑定 Apple/Google 账号后，底层会话平滑升级为正式账号，原本地历史数据完整保留。
-3. **响应式状态流**：
-   通过 `Auth.userDataStream` 全局广播用户登录态与资产变更，UI 页面可细粒度监听。
+## ⚙️ 必要配置 (Configuration)
+
+纯 Dart + Supabase SDK，无需敏感原生权限。仅需在应用启动入口初始化 Supabase：
+```dart
+await Supabase.initialize(url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_ANON_KEY');
+```
 
 ---
 
-## 三、 对外 API
+## 📚 完整 API 列表 (API Reference)
 
-通过统一门面类 `Auth` 进行调用（使用前在应用入口调用 `Auth.initialize(...)`）：
+### 1. 全局统一认证门面 (`Auth`)
 
 ```dart
-// 1. 初始化 (在 main() 或 App 初始化 ViewModel 中)
-Auth.initialize(
-  client: Supabase.instance.client,
-  appId: AppConfig.appId,
-);
+class Auth {
+  /// 初始化全局认证单例
+  static void initialize({
+    required SupabaseClient client,
+    required String appId,
+  });
 
-// 2. 冷启动静默自动登录
-final result = await Auth.autoLogin();
-if (result.isSuccess) {
-  final user = result.data!;
-  print('登录成功: ${user.displayName}');
-  print('是否为VIP: ${user.isVip}, 等级: ${user.vipTier}, 到期时间: ${user.vipExpireAt}');
-  print('标准积分余额: ${user.pointsBalance}');
+  /// 获取当前已登录用户的内存档案快照 (未登录为 null)
+  static UserData? get currentUser;
+
+  /// 用户业务档案响应式广播流 (登录/登出/刷新全自动推送)
+  static Stream<UserData?> get userDataStream;
+
+  /// 冷启动静默自动恢复登录态 (若未登录直接返回 unauthorized，绝不隐式创建匿名账号)
+  static Future<AuthResult<UserData>> autoLogin();
+
+  /// 渠道默认一键登录 (具体行为由当前引入的渠道包覆盖，如 Apple/Google 原生登录)
+  static Future<AuthResult<UserData>> signIn();
+
+  /// 匿名登录 (快速体验)
+  static Future<AuthResult<UserData>> signInAnonymously();
+
+  /// 发送邮箱 6 位 OTP 动态验证码
+  static Future<AuthResult<void>> sendEmailOtp({required String email});
+
+  /// 邮箱验证码登录 / 免密注册
+  static Future<AuthResult<UserData>> signInWithEmailOtp({
+    required String email,
+    required String token,
+  });
+
+  /// 原生 Apple 登录 (由 core_auth_apple 实现)
+  static Future<AuthResult<UserData>> signInWithApple();
+
+  /// 原生 Google 登录 (由 core_auth_google 实现)
+  static Future<AuthResult<UserData>> signInWithGoogle();
+
+  /// 主动刷新当前用户业务档案与权益
+  static Future<AuthResult<UserData>> refreshProfile();
+
+  /// 退出登录
+  static Future<void> signOut();
 }
-
-// 3. 监听全局用户状态变化
-Auth.userDataStream.listen((UserData? user) {
-  if (user == null) {
-    print('用户已登出');
-  } else {
-    print('当前用户: ${user.displayName}, VIP: ${user.isVip}, 权益总数: ${user.entitlements.length}');
-  }
-});
-
-// 4. 发送邮箱验证码 (OTP)
-await Auth.sendEmailOtp(email: 'user@example.com');
-
-// 5. 验证码登录 / 注册
-final loginResult = await Auth.signInWithEmailOtp(
-  email: 'user@example.com',
-  token: '123456',
-);
-
-// 6. 三方登录 (需引入对应渠道包，如 core_auth_app_store)
-await Auth.signInWithApple();
-await Auth.signInWithGoogle();
-
-// 7. 刷新用户档案与资产
-await Auth.refreshProfile();
-
-// 8. 退出登录
-await Auth.signOut();
 ```
 
----
+### 2. 用户业务档案与权益模型 (`UserData` & `EntitlementInfo`)
 
-## 四、 渠道包架构分层
+```dart
+class UserData {
+  final String id;             // common.users.id
+  final String appId;          // common.apps.id
+  final String supabaseUid;    // auth.users.id
+  final bool isAnonymous;      // 是否为匿名用户
+  final String authProvider;   // 'anonymous' | 'apple' | 'google' | 'email'
+  final bool isNewUser;        // 是否为本次刚刚注册的新用户
+  final String? email;
+  final String? phone;
+  final String displayName;
+  final String? avatarUrl;
+  final String riskLevel;      // 'normal' | 'high' | 'banned'
+  final List<EntitlementInfo> entitlements; // 会员/积分/额度资产列表
+  final DateTime? lastLoginAt;
+  final DateTime createdAt;
 
-* **`core_auth_base`**：核心抽象、纯 Dart 领域模型（`UserData`, `EntitlementInfo`）、`sync_user_profile` RPC 交互与 `Auth` 单例门面。
-* **`core_auth_app_store`**：继承基类，集成 `sign_in_with_apple` 与 `google_sign_in`。
-* **`core_auth_google_play`**：继承基类，面向纯 Google 生态分发。
+  // 便捷计算属性
+  bool get isVip;              // 当前是否为有效 VIP
+  String? get vipTier;         // 当前有效 VIP 等级 ('pro' / 'svip')
+  DateTime? get vipExpireAt;   // VIP 到期截止时间
+  int get pointsBalance;       // 当前标准积分余额
+  double getBalance(String code, {String type = 'quota'}); // 获取指定资产额度
+}
+
+class EntitlementInfo {
+  final String id;
+  final String code;           // 权益标识 (如 'membership', 'standard_point')
+  final String type;           // 'membership' | 'points' | 'quota'
+  final String tier;           // 'free' | 'pro' | 'svip'
+  final double balance;        // 余额数值
+  final String status;         // 'active' | 'expired' | 'revoked'
+  final DateTime? expireAt;
+}
+```
+
+### 3. 操作结果与错误码 (`AuthResult` & `AuthErrorCode`)
+
+```dart
+class AuthResult<T> {
+  final bool isSuccess;
+  final T? data;
+  final AuthErrorCode? code;
+  final String? message;
+
+  bool get isFailure => !isSuccess;
+  const AuthResult.success(T? data);
+  const AuthResult.failure(AuthErrorCode code, [String? message]);
+}
+
+enum AuthErrorCode {
+  unauthorized,          // 未登录 / 会话过期
+  userNotFound,          // 用户不存在
+  otpInvalid,            // 验证码错误或已过期
+  oauthFailed,           // 第三方授权被取消或失败
+  riskBlocked,           // 命中风控限制
+  networkUnavailable,    // 网络异常
+  internalError,         // 内部服务异常
+}
+```

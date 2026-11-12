@@ -1,81 +1,75 @@
 # core_auth_google
 
-Google 原生认证渠道模块，继承并实现 `core_auth_base` 规范，提供 Android / 跨端平台上的原生 **Google Sign-In** 能力，并自动与 Supabase Auth 完成身份令牌校验与会话绑定。
+Google 渠道专用认证实现包，封装 Android / Web 原生 Google Sign-In 一键授权并使用 `idToken` 交换 Supabase 会话，全自动与 `core_auth_base` 桥接。
 
----
+## 🏷️ 最新版本 Tag
 
-## 模块定位
+`auth_google@1.0.0`
 
-- **角色**：`core_auth_base` 的 Google 平台原生实现。
-- **支持端**：Android、iOS、Web 等。
-- **内部技术**：`google_sign_in` + `supabase_flutter`。
-- **透传导出**：全量重导出 `core_auth_base/auth.dart` 中的通用数据模型与 `BaseAuthService`。
+## 📦 接入方式 (Installation)
 
----
-
-## 依赖配置
-
-在宿主 App 的 `pubspec.yaml` 中引入：
+在 Android / Google Play 或 Web 发行包中直接接入本包（自动依赖并全量透传 `core_auth_base` 的所有模型与全局 `Auth` 门面）：
 
 ```yaml
 dependencies:
-  core_auth:
-    path: packages/core_auth_google
+  core_auth_google:
+    git:
+      url: https://github.com/janzun/flutter_foundation.git
+      path: packages/core_auth_google
+      ref: auth_google@1.0.0
 ```
 
----
+## ⚙️ 必要配置 (Configuration)
 
-## 快速使用
+### 1. Google Cloud Console 凭据配置
+在 Google Cloud Console / Firebase Console 中：
+- 配置 Android SHA-1 指纹与包名；
+- 获取用于获取 `idToken` 的 **Web Client ID**。
 
-### 1. 实例化与工厂构造
-
+### 2. 初始化
+直接使用全局统一门面初始化（支持通过参数或 `--dart-define=GOOGLE_SERVER_CLIENT_ID=xxx` 传入 Web Client ID）：
 ```dart
-import 'package:core_auth/auth.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:core_auth_google/auth.dart';
 
-final authService = createAuthService(
+Auth.initialize(
   client: Supabase.instance.client,
-  appId: 'your_app_slug',
-  serverClientId: 'YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com', // Android 获取 idToken 所需
+  appId: 'YOUR_APP_UUID',
 );
 ```
 
-### 2. 执行 Google 原生登录
+---
+
+## 📚 完整 API 列表 (API Reference)
+
+本包全量透传 `core_auth_base` 的全部 API，并提供以下专有实现：
 
 ```dart
-// 拉起系统 Google 账号选择器并登录
-final result = await authService.signIn(); // 默认指向 signInWithGoogle()
+class GoogleAuthService extends BaseAuthService {
+  final String? serverClientId;
 
-if (result.isSuccess) {
-  final user = result.data!;
-  print('登录成功: ${user.uid}, email: ${user.email}');
-} else {
-  print('登录失败: [${result.errorCode}] ${result.errorMessage}');
+  GoogleAuthService({
+    required super.client,
+    required super.appId,
+    this.serverClientId,
+  });
+
+  /// 渠道默认登录方式 (直接触发原生 Google 登录)
+  @override
+  Future<AuthResult<UserData>> signIn();
+
+  /// 原生 Google 登录 (拉起系统 Google 授权弹窗，获取 idToken 后在 Supabase 换取 Session，自动同步中台档案)
+  @override
+  Future<AuthResult<UserData>> signInWithGoogle();
 }
 ```
 
-### 3. 监听登录态变更
-
+### 全局一键调用示例
 ```dart
-authService.userStream.listen((UserData? user) {
-  if (user != null) {
-    print('当前用户: ${user.uid}');
-  } else {
-    print('用户未登录');
-  }
-});
+// 直接调用渠道默认登录，或显式调用 Google 登录
+final res = await Auth.signIn(); // 或 Auth.signInWithGoogle();
+
+if (res.isSuccess) {
+  final UserData user = res.data!;
+  print('登录成功: ${user.displayName}, VIP: ${user.isVip}');
+}
 ```
-
----
-
-## 核心 API
-
-| 类 / 函数 | 说明 |
-| :--- | :--- |
-| `createAuthService({required SupabaseClient client, required String appId, String? serverClientId})` | 顶层工厂函数，返回配置好 Google 原生授权的 `BaseAuthService` 实例 |
-| `GoogleAuthService` | 实现类，继承自 `BaseAuthService` |
-| `GoogleAuthService.signIn()` | 默认登录实现，直接调用 `signInWithGoogle()` |
-| `GoogleAuthService.signInWithGoogle()` | 拉起 Google 原生账号列表授权，取得 `idToken` 并完成 Supabase `signInWithIdToken` |
-| `BaseAuthService.userStream` | 用户登录态响应式流 (`Stream<UserData?>`) |
-| `BaseAuthService.currentUser` | 获取当前缓存的 `UserData?` |
-| `BaseAuthService.signOut()` | 安全登出并清理 Supabase 会话 |
