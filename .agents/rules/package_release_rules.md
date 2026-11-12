@@ -19,12 +19,12 @@
      - 破坏性改动：递增 Major 版本（如 `1.0.0` -> `2.0.0`）。
    - 未发生代码改动的 package，严禁随意变动其版本号。
 3. **README 同步更新**:
-   - 必须同步更新 `packages/<pkg_name>/README.md` 中的【最新版本 Tag】为 `<pkg_name>-v<new_version>`。
+   - 必须同步更新 `packages/<pkg_name>/README.md` 中的【最新版本 Tag】为 `<short_name>@<new_version>`（去掉 `core_` 前缀，如 `arch@1.0.1`、`database@1.1.0`、`io@1.0.0`）。
 4. **Git 提交与打 Tag (Commit & Tag)**:
    - Git Commit 描述必须遵循 Conventional Commits 规范，如 `fix(core_io): ...` 或 `feat(core_database): ...`。
-   - 每次版本升级必须打上对应的 Git Tag：
+   - 每次版本发布必须打上对应的 Git Tag，命名规则为 `<short_name>@<version>`（去掉 `core_` 前缀，如 `arch@1.0.1`）：
      ```bash
-     git tag <pkg_name>-v<new_version>
+     git tag <short_name>@<new_version>
      git push origin main --tags
      ```
 

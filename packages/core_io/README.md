@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`core_io-v1.0.0`
+`io@1.0.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -14,7 +14,7 @@ dependencies:
     git:
       url: https://github.com/janzun/flutter_foundation.git
       path: packages/core_io
-      ref: core_io-v1.0.0
+      ref: io@1.0.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)

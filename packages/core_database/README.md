@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`core_database-v1.0.0`
+`database@1.0.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -14,7 +14,7 @@ dependencies:
     git:
       url: https://github.com/janzun/flutter_foundation.git
       path: packages/core_database
-      ref: core_database-v1.0.0
+      ref: database@1.0.0
 
 dev_dependencies:
   build_runner: ^2.4.11

@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`core_arch-v1.0.0`
+`arch@1.0.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -14,7 +14,7 @@ dependencies:
     git:
       url: https://github.com/janzun/flutter_foundation.git
       path: packages/core_arch
-      ref: core_arch-v1.0.0
+      ref: arch@1.0.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
