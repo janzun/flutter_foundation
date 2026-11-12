@@ -1,118 +1,217 @@
 # core_arch
 
-跨项目复用的**纯 Dart / 官方无原生权限污染核心架构与跨端基础工具底座**。
+工业级 Flutter 基础架构核心底座，涵盖单向数据流 MVVM 架构、网络防御客户端、0 敏感权限安全沙盒文件管理、流式防 OOM 聚合备份、响应式布局及通用扩展。
 
-严禁引入任何涉及相机、相册、定位、通知等需要 iOS/Android 敏感系统权限的原生插件，保证多端 100% 纯净与快速通过海外应用商店（App Store / Google Play）合规审查。
+## 🏷️ 最新版本 Tag
 
----
+`core_arch-v1.0.0`
 
-## 🎯 核心 API 极简速查表（AI & 人类索引零幻觉）
-
-| 模块分类 | 核心类 / 扩展 | 一句话核心功能与调用方式 |
-| :--- | :--- | :--- |
-| **MVVM 状态** | `Result<T>` | Dart 3 密封类：`Ok(value)` / `Err(AppException)`，模式匹配或 `result.when(...)` |
-| **MVVM 视图** | `ViewState` | 视图五态：`idle`, `loading`, `empty`, `error`, `success`，布尔 getter：`isLoading` 等 |
-| **异常治理** | `AppException` | 统一异常结构：`code`, `message`, `statusCode`, `originalError` |
-| **网络请求** | `DioClient` | 工业级 Dio 封装，`DioClient.guard<T>(() => ...)` 统一抹平异常并转为 `Result<T>` |
-| **业务仓储** | `BaseRepository` | 仓储抽象基类：`safeCall(() => _api.getUser())`（配合 Retrofit 零 try-catch） |
-| **业务封包** | `ApiResponse<T>` | 后端常见 `{code, message, data}` 通用泛型实体 |
-| **文件直传** | `R2Uploader` | `uploadBytes(...)`：通过预签名 PUT URL 直传 Cloudflare R2 / S3（0 业务服务器出网带宽） |
-| **原子下载** | `FileDownloader` | `downloadFile(...)`：大文件临时隔离安全下载，完成原子重命名防损坏，支持进度与取消 |
-| **网络感知** | `NetworkConnectivity`| `isConnected` 异步判定，`onConnectivityChanged` 响应式监听 WiFi/蜂窝/断网 |
-| **断点识别** | `ScreenType` | 屏幕尺寸形态：`compact (<600)`，`medium (<840)`，`expanded (>=840)` |
-| **响应式上下文**| `context.*` | `context.isDesktop` / `context.isMobile` / `context.responsiveValue(...)` |
-| **自适应脚手架**| `AdaptiveScaffold` | 手机端底部 `NavigationBar`，平板/桌面端自动切换为左侧 `NavigationRail` |
-| **双栏联动** | `ResponsiveLayout` | 自适应内容容器：手机单列流 vs 桌面 Master-Detail 左右双栏 |
-| **宽屏限宽** | `ContentMaxWidth` | `ContentMaxWidth(maxWidth: 900, child: ...)` 防止超宽大屏横向拉皮变丑 |
-| **路由转场** | `AppTransitions` | 配合 GoRouter：`slideHorizontal`, `slideUp`, `fade`, `adaptive`（桌面极速淡入） |
-| **多方位弹窗** | `DialogUtil` | `show(position: ...)`（center/bottom/top/right/left，免 Context），`confirm(...)` |
-| **轻提示/遮罩** | `ToastUtil` | 免 Context：`ToastUtil.success('...')`, `showLoading(...)`, `hideLoading()` |
-| **本地文件存储** | `FileUtil` | 自动建目录、原子写入防损坏 (`writeBytes`, `writeString`)、安全读删与缓存统计清理 |
-| **本地缓存** | `SpUtil` | 启动 `await SpUtil.init()`，之后 `getString/getBool` **完全同步 O(1) 读**，异步写落盘 |
-| **沙盒路径** | `PathUtil` | `appDocumentsDirectory`, `appCacheDirectory`, `temporaryDirectory` 0 敏感权限 |
-| **事件总线** | `EventBus` | `EventBus.emit(event)` 发布，`EventBus.on<T>()` 订阅解耦通信 |
-| **环境日志** | `Logger` | `Logger.d / i / w / e`：Debug 彩色带时间戳堆栈输出，Release **自动彻底静默** |
-| **国际化日期** | `DateTime.*` | `date.timeAgo()` ("5m ago")，`toFormattedDate()` ("Nov 11, 2026")，Intl 标准 |
-| **货币与体积** | `num.*` | `(1299.9).toCurrency(symbol: '\$')` -> `\$1,299.90`，`bytes.toByteSizeString()` |
-| **合规脱敏** | `String.*` | `email.maskEmail()`，`phone.maskPhone()`，`isEmail`, `isUrl`, `isNumeric` |
-| **微动效交互** | `BouncingTap` | 类似 iOS 负一屏的 0.96 微按压缩放与弹性回弹触觉手感 |
-| **入场动画** | `FadeSlideTransition`| 局域元素/列表项淡入滑入动效，支持 `delay` 瀑布流交错 |
-| **交互组件** | `HideKeyboardTap` | 点击页面空白处自动收起软键盘 |
-| **桌面滚动** | `AppScrollBehavior`| 开启 Web / 桌面端鼠标触摸板平滑拖拽滚动 |
-
----
-
-## 🚀 App 根入口黄金装配模版 (`main.dart`)
-
-在业务 App 中，只需在入口配置以下 4 处，即可一次性挂载所有基础设施：
-
-```dart
-import 'package:flutter/material.dart';
-import 'package:core_arch/core_arch.dart';
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // 1. 预初始化内存键值缓存单例（确保之后同步极速读写）
-  await SpUtil.init();
-
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Global App',
-
-      // 2. 挂载免 Context 全局 SnackBar 与 Dialog Key
-      scaffoldMessengerKey: ToastUtil.messengerKey,
-      navigatorKey: ToastUtil.navigatorKey,
-
-      // 3. 挂载桌面端与 Web 端平滑拖拽滚动行为
-      scrollBehavior: const AppScrollBehavior(),
-
-      // 4. 外层包裹空白点击自动收起软键盘
-      builder: (context, child) => HideKeyboardTap(child: child!),
-
-      theme: ThemeData(useMaterial3: true),
-      home: const HomeScreen(),
-    );
-  }
-}
-```
-
----
-
-## 💡 真实可运行实机样例（避免 AI 幻觉的黄金参考）
-
-在本项目宿主工程中，已包含完整、可运行、可交互的测试样板页面：
-- **实机样例文件位置**：[`lib/example/core_arch.dart`](file:///Users/alex/WorkSpace/Project/flutter_foundation/lib/example/core_arch.dart)
-- **应用启动入口**：[`lib/main.dart`](file:///Users/alex/WorkSpace/Project/flutter_foundation/lib/main.dart)
-
-AI 编写业务代码时，可直接参考该样例中的调用模式：
-1. **MVVM 四态 + DioClient.guard** 模拟网络请求与异常捕获；
-2. **多方位弹窗 (DialogUtil)** 底部弹窗、侧边抽屉与确认对话框；
-3. **响应式断点与取值 (ResponsiveContext)** 跨端自适应布局；
-4. **本地存储 (SpUtil)** 内存同步极速读取；
-5. **微动效与防连点 (BouncingTap & DebounceTap)**。
-
----
-
-## 依赖引入
-
-在各业务 App 的 `pubspec.yaml` 中引入：
+## 📦 接入方式 (Installation)
 
 ```yaml
 dependencies:
   core_arch:
-    path: ../core_arch # 或 packages/core_arch
+    git:
+      url: https://github.com/janzun/flutter_foundation.git
+      path: packages/core_arch
+      ref: core_arch-v1.0.0
 ```
 
-统一入口引用：
+## ⚙️ 必要配置 (Configuration)
+
+纯 Dart 与应用沙盒内部读写，**零敏感系统权限**。
+
+---
+
+## 📚 完整 API 列表 (API Reference)
+
+### 1. MVVM 与架构核心
 
 ```dart
-import 'package:core_arch/core_arch.dart';
+/// 单向数据流 (UDF) 状态基类与瞬时事件基类
+abstract class BaseUiState { const BaseUiState(); }
+abstract class BaseUiEvent { const BaseUiEvent(); }
+
+/// 视图模型基类 (内部自动托管事件订阅生命周期，防内存泄漏)
+abstract class BaseViewModel<S extends BaseUiState, E extends BaseUiEvent> extends ChangeNotifier {
+  BaseViewModel(S initialState);
+  S get uiState;
+  void listenEvent(void Function(E event) onEvent);
+  void updateUiState(S Function(S state) transform); // 原子函数式更新并通知 UI
+  void sendUiEvent(E event);                         // 下发单次副作用事件 (Toast/跳转)
+}
+
+/// 工业级无异常逃逸结果对象
+class Result<T> {
+  const Result.ok(T value);
+  const Result.err(AppException error);
+  bool get isOk;
+  bool get isErr;
+  T? get valueOrNull;
+  AppException? get errorOrNull;
+  R fold<R>(R Function(T value) onOk, R Function(AppException error) onErr);
+}
+
+/// 统一业务与网络异常包装
+class AppException implements Exception {
+  final String code;
+  final String message;
+  final int? statusCode;
+  final Object? originalError;
+}
+
+/// 标准视图状态枚举
+enum ViewState { idle, loading, empty, error, success }
+```
+
+### 2. 存储与多资产聚合备份
+
+```dart
+/// 安全沙盒文件管理 (全量支持流式 Zip，防 OOM 峰值)
+class FileUtil {
+  static Future<Directory> createDirIfNotExists(String dirPath);
+  static Future<Directory> getDocSubDir(String subDirName);
+  static Future<Directory> getCacheSubDir(String subDirName);
+  static Future<File> writeBytes(String filePath, Uint8List bytes, {bool atomic = true});
+  static Future<File> writeString(String filePath, String content, {bool atomic = true});
+  static Future<File> copyFile(String sourcePath, String targetPath);
+  static Future<String?> readString(String filePath);
+  static Future<Uint8List?> readBytes(String filePath);
+  static bool exists(String path);
+  static Future<bool> deleteFile(String filePath);
+  static Future<bool> deleteDir(String dirPath, {bool recursive = true});
+  static int getFileSize(String filePath);
+  static Future<int> getDirSizeBytes(Directory dir);
+  static Future<String> getAppCacheSizeString();
+  static Future<bool> clearAppCache();
+
+  /// 磁盘流式打 Zip 包 (支持多目录与相对路径映射)
+  static Future<File> zipFiles({required List<File> files, required String targetZipPath, Map<String, String>? pathInZipMap});
+  static Future<File> zipDirectory({required Directory sourceDir, required String targetZipPath});
+  static Future<Directory> unzipFile({required File zipFile, required String targetDirPath});
+}
+
+/// 全局多资产复合备份工具 (.bak 打包与提取)
+class BackupUtil {
+  /// 创建聚合备份 (汇集 manifest.json, 数据库快照, 命名空间隔离的多附件目录, KV 配置字典)
+  static Future<Result<File>> createBackup({
+    required String targetBackupFilePath,
+    File? databaseFile,
+    List<Directory>? attachmentDirs,
+    Map<String, dynamic>? kvData,
+    int schemaVersion = 1,
+    String? appVersion,
+    Map<String, dynamic>? extraMeta,
+  });
+
+  /// 解压并提取备份资产 (内置清单校验与版本兼容性检查)
+  static Future<Result<BackupExtractedData>> extractBackup({
+    required File backupFile,
+    required String targetExtractDir,
+    int? expectedMaxSchemaVersion,
+  });
+}
+
+/// 轻量级键值存储工具 (支持全量导出/导入闭环)
+class SpUtil {
+  static Future<void> init();
+  static String getString(String key, {String defaultValue = ''});
+  static bool getBool(String key, {bool defaultValue = false});
+  static int getInt(String key, {int defaultValue = 0});
+  static double getDouble(String key, {double defaultValue = 0.0});
+  static List<String> getStringList(String key, {List<String> defaultValue = const []});
+  static bool containsKey(String key);
+  static Future<bool> setString(String key, String value);
+  static Future<bool> setBool(String key, bool value);
+  static Future<bool> setInt(String key, int value);
+  static Future<bool> setDouble(String key, double value);
+  static Future<bool> setStringList(String key, List<String> value);
+  static Future<bool> remove(String key);
+  static Future<bool> clear();
+
+  /// 导出全部配置 (直接对接 BackupUtil.createBackup kvData)
+  static Map<String, dynamic> exportAll({Set<String>? excludeKeys});
+
+  /// 从字典一键导入恢复配置 (自动处理 JSON List<dynamic> 类型擦除)
+  static Future<bool> importAll(Map<String, dynamic> data, {bool clearBefore = false});
+}
+
+/// 沙盒目录定位工具
+class PathUtil {
+  static Future<Directory> get appDocumentsDirectory;
+  static Future<Directory> get appCacheDirectory;
+  static Future<Directory> get temporaryDirectory;
+  static Future<Directory> get appSupportDirectory;
+}
+```
+
+### 3. 网络与传输
+
+```dart
+/// 工业级 Dio 客户端 (内置 401 节流防重入锁与标准异常转换)
+class DioClient {
+  factory DioClient({
+    required String baseUrl,
+    Duration connectTimeout,
+    Duration receiveTimeout,
+    Duration sendTimeout,
+    FutureOr<String?> Function()? tokenProvider,
+    Map<String, dynamic> Function()? headerProvider,
+    void Function()? onUnauthorized,
+    List<Interceptor>? interceptors,
+  });
+
+  /// 异步请求卫士 (自动捕获 Dio/业务异常并转换为 Result<T>)
+  static Future<Result<T>> guard<T>(Future<T> Function() request);
+
+  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? queryParameters, Options? options, CancelToken? cancelToken});
+  Future<Response<T>> post<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options, CancelToken? cancelToken});
+  Future<Response<T>> put<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options, CancelToken? cancelToken});
+  Future<Response<T>> delete<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options, CancelToken? cancelToken});
+}
+
+/// 大文件分块下载工具
+class FileDownloader {
+  static Future<Result<File>> downloadFile({
+    required String urlPath,
+    required String savePath,
+    void Function(int received, int total)? onReceiveProgress,
+    CancelToken? cancelToken,
+    bool deleteOnError = true,
+    Duration timeout,
+  });
+}
+
+/// S3 / Cloudflare R2 预签名直传工具
+class R2Uploader {
+  static Future<Result<void>> uploadBytes({
+    required String presignedPutUrl,
+    required Uint8List bytes,
+    required String contentType,
+    void Function(int sent, int total)? onSendProgress,
+    Duration timeout,
+  });
+}
+```
+
+### 4. UI 辅助与事件驱动
+
+```dart
+/// 全局 Toast 与精准 Loading (精准 context 销毁，杜绝误关业务页面)
+class ToastUtil {
+  static final GlobalKey<ScaffoldMessengerState> messengerKey;
+  static final GlobalKey<NavigatorState> navigatorKey;
+  static void show(String message, {bool isError = false, Duration duration});
+  static void success(String message);
+  static void error(String message);
+  static void showLoading({String message = '加载中...'});
+  static void hideLoading();
+}
+
+/// 类型安全全局事件总线 (支持销毁后自动重建)
+class EventBus {
+  static void emit<T>(T event);
+  static Stream<T> on<T>();
+  static Future<void> destroy();
+}
 ```

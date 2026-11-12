@@ -1,146 +1,133 @@
 # core_database
 
-High-performance NoSQL object database package based on [Isar](https://isar.dev), tailored for Flutter applications with zero-schema boilerplate and atomic snapshot backup capabilities.
+基于 Isar 的高性能 NoSQL 实体数据库底座，提供代码优先（Code-First）、零手写 SQL、跨表原子事务与原子防毁库快照导入导出支持。
 
----
+## 🏷️ 最新版本 Tag
 
-## 🌟 特性 (Features)
+`core_database-v1.0.0`
 
-1. **Zero-Schema 声明式代码优先 (Code-First)**:
-   - 直接存储纯 Dart Class（通过 `@collection` 注解），编译期强类型校验，零手写 SQL DDL。
-2. **极低模块耦合 (Decoupled & Pure)**:
-   - 数据库存储路径显式由调用方传入，完全解耦上层路径模块（不依赖 `PathUtil`）。
-3. **单库快照与原子备份 (Snapshot Support)**:
-   - 提供 `IsarSnapshotUtil.createSnapshot()` 导出单库快照，支持无缝接入全局复合备份机制（如 `BackupUtil`）。
-   - 提供 `IsarSnapshotUtil.restoreFromSnapshot()` 安全还原覆盖旧数据库并即时初始化。
-4. **强类型通用 DAO 抽象 (BaseIsarDao)**:
-   - 预封装完整的 CRUD、分页 (`getPaged`)、统计 (`count`) 与轻量级响应式监听 (`watchLazy` / `watchObject`)。
+## 📦 接入方式 (Installation)
 
----
+```yaml
+dependencies:
+  core_database:
+    git:
+      url: https://github.com/janzun/flutter_foundation.git
+      path: packages/core_database
+      ref: core_database-v1.0.0
 
-## 📦 模块架构设计
-
-```
-packages/core_database/
-├── lib/
-│   ├── core_database.dart         # 统一 Barrel 导出文件
-│   ├── engine/
-│   │   └── isar_database.dart     # Isar 数据库引擎生命周期管理（单例/打开/关闭/清空/压缩）
-│   ├── dao/
-│   │   └── base_isar_dao.dart     # 强类型通用 DAO 基类（CRUD/分页/流监听）
-│   └── snapshot/
-│       └── isar_snapshot_util.dart# 单库原子快照创建与恢复工具（对接 BackupUtil）
+dev_dependencies:
+  build_runner: ^2.4.11
+  isar_generator: 3.1.0+1
 ```
 
+## ⚙️ 必要配置 (Configuration)
+
+纯 Dart + Isar 引擎，无需任何敏感系统权限。
+
 ---
 
-## 🚀 快速上手 (Quick Start)
+## 📚 完整 API 列表 (API Reference)
 
-### 1. 声明数据实体模型 (Model)
+### 1. 数据库引擎生命周期 (`IsarDatabase`)
 
 ```dart
-import 'package:core_database/core_database.dart';
+class IsarDatabase {
+  static final IsarDatabase instance;
 
-part 'user_profile.g.dart';
+  /// 获取当前已初始化的默认 Isar 实例 (未初始化抛出 StateError)
+  Isar get isar;
 
-@collection
-class UserProfile {
-  Id id = Isar.autoIncrement;
+  /// 检查数据库是否打开就绪
+  bool get isOpen;
 
-  @Index(unique: true)
-  late String userId;
+  /// 初始化并打开数据库 (存储路径由外部显式传入，彻底解耦 PathUtil)
+  Future<Isar> init({
+    required String directory,
+    required List<CollectionSchema<dynamic>> schemas,
+    String name = Isar.defaultName,
+    int maxSizeMiB = Isar.defaultMaxSizeMiB,
+    bool relaxedDurability = true,
+    bool inspector = false,
+    CompactCondition? compactOnLaunch,
+  });
 
-  late String nickname;
+  /// 关闭数据库 (可配置是否同时删除磁盘数据)
+  Future<bool> close({bool deleteFromDisk = false});
 
-  int age = 0;
+  /// 清空当前数据库中的所有集合数据
+  Future<void> clearAll();
 
-  DateTime? updatedAt;
+  /// 执行跨表原子写事务 (支持跨多个 DAO 编排写操作)
+  Future<T> writeTxn<T>(Future<T> Function() callback, {bool silent = false});
+
+  /// 执行只读事务
+  Future<T> txn<T>(Future<T> Function() callback);
+
+  /// 获取数据库总占用字节大小
+  Future<int> getSize({bool includeIndexes = false, bool includeLinks = false});
 }
 ```
 
-执行生成代码：
-```bash
-dart run build_runner build
-```
+### 2. 强类型通用实体 DAO 基类 (`BaseIsarDao<T>`)
 
----
-
-### 2. 初始化数据库引擎 (Initialization)
-
-> **注意**：存储目录 `directory` 必须由外部显式传入（例如在主工程中通过 `PathUtil.getDatabaseDir()` 获取后传递），保持底座极简无侵入。
+业务 DAO 继承该类，即可获得完整 CRUD、独立事务方法及响应式监听：
 
 ```dart
-import 'package:core_database/core_database.dart';
+abstract class BaseIsarDao<T> {
+  const BaseIsarDao();
 
-Future<void> setupDatabase(String storageDirectory) async {
-  await IsarDatabase.instance.init(
-    directory: storageDirectory,
-    schemas: [
-      UserProfileSchema,
-    ],
-    // 可选参数：
-    // name: 'my_app_db',
-    // encryptionKey: 'my-aes-key',
-    // inspector: kDebugMode,
-  );
+  Isar get isar;
+  IsarCollection<T> get collection;
+
+  // --- 单独调用 (内置 writeTxn) ---
+  Future<Id> put(T entity);
+  Future<List<Id>> putAll(List<T> entities);
+  Future<bool> delete(Id id);
+  Future<int> deleteAll(List<Id> ids);
+  Future<void> clear();
+
+  // --- 在外部事务中组合使用 (供 IsarDatabase.instance.writeTxn 内部调用，防嵌套崩溃) ---
+  Future<Id> putInTxn(T entity);
+  Future<List<Id>> putAllInTxn(List<T> entities);
+  Future<bool> deleteInTxn(Id id);
+  Future<int> deleteAllInTxn(List<Id> ids);
+  Future<void> clearInTxn();
+
+  // --- 查询与监听 ---
+  Future<T?> getById(Id id);
+  Future<List<T?>> getAllByIds(List<Id> ids);
+  Future<List<T>> getAll();
+  Future<List<T>> getPaged({required int offset, required int limit});
+  Future<int> count();
+
+  /// 响应式监听当前集合全量列表流 (极速绑定 UI)
+  Stream<List<T>> watchAll({bool fireImmediately = true});
+
+  /// 响应式监听任意增删改通知流 (轻量防抖)
+  Stream<void> watchLazy({bool fireImmediately = false});
+
+  /// 响应式监听特定对象变化
+  Stream<T?> watchObject(Id id, {bool fireImmediately = false});
 }
 ```
 
----
-
-### 3. 创建专属 DAO 并操作数据 (DAO Usage)
+### 3. 单库快照与安全还原 (`IsarSnapshotUtil`)
 
 ```dart
-class UserDao extends BaseIsarDao<UserProfile> {
-  // 继承 BaseIsarDao 后，即可直接使用 put, putAll, getById, getAll, getPaged, delete 等通用方法。
+class IsarSnapshotUtil {
+  /// 创建当前数据库的原子快照文件 (直接供 BackupUtil 聚合打包)
+  static Future<File> createSnapshot({
+    required String targetSnapshotFilePath,
+    Isar? isar,
+  });
 
-  // 支持扩展特定业务查询逻辑
-  Future<UserProfile?> findByUserId(String userId) async {
-    return await collection.filter().userIdEqualTo(userId).findFirst();
-  }
-}
-```
-
----
-
-### 4. 配合 `BackupUtil` 进行备份与还原
-
-#### 导出快照供全量打包
-```dart
-// 1. 生成单库快照文件
-final snapshotFile = await IsarSnapshotUtil.createSnapshot(
-  targetSnapshotFilePath: '/path/to/cache/db_snapshot.isar',
-);
-
-// 2. 传入 core_arch 的 BackupUtil 打包成 .bak 文件
-final backupResult = await BackupUtil.createBackup(
-  databaseSnapshotFile: snapshotFile,
-  attachmentsDir: Directory('/path/to/attachments'),
-  targetBackupPath: '/path/to/backups/app_backup.bak',
-  manifest: BackupManifest(
-    appVersion: '1.0.0',
-    createdAt: DateTime.now(),
-    schemaVersion: 1,
-  ),
-);
-```
-
-#### 从备份文件还原
-```dart
-// 1. 解压备份文件包
-final extractResult = await BackupUtil.extractBackup(
-  backupFile: File('/path/to/backups/app_backup.bak'),
-  targetExtractDir: Directory('/path/to/cache/extracted'),
-);
-
-if (extractResult.isSuccess) {
-  final extracted = extractResult.data!;
-
-  // 2. 从解压得到的 snapshot 文件还原数据库
-  await IsarSnapshotUtil.restoreFromSnapshot(
-    sourceSnapshotFile: extracted.databaseFile!,
-    directory: storageDirectory,
-    schemas: [UserProfileSchema],
-  );
+  /// 从外部快照文件还原数据库 (带 .rollback_tmp 自动回滚防毁库机制)
+  static Future<Isar> restoreFromSnapshot({
+    required File sourceSnapshotFile,
+    required String directory,
+    required List<CollectionSchema<dynamic>> schemas,
+    String dbName = Isar.defaultName,
+  });
 }
 ```
