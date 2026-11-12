@@ -1,112 +1,162 @@
 # core_llm
 
-通用大模型（LLM）适配器与 AI 提示词工具集，为 Flutter / Dart 应用提供统一的多模型接入抽象。支持 Google Gemini、OpenAI 兼容协议（DeepSeek、ChatGPT、Groq、Moonshot 等），涵盖非流式输出、SSE 流式打字机输出以及特定场景（如会议纪要/总结）的增强工具。
+## 1. 介绍
+跨平台通用 LLM 适配器与 AI 提示词工具包。统一封装 Google Gemini 与 OpenAI Compatible（支持 DeepSeek、OpenAI、月之暗面等任意兼容规范接口）的非流式与流式生成调用。内置会议纪要与录音转写结构化提炼工具 `SummaryHelper`，支持纯净 Markdown 导出与多语言自适应。
 
----
+## 2. 最新版本 Tag
+`llm@1.0.0`
 
-## 模块定位
-
-- **统一抽象**：通过 `ILlmProvider` 屏蔽底层各供应商 API 差异。
-- **开箱即用 Provider**：
-  - `GeminiProvider`: 原生接入 Google Gemini API。
-  - `OpenAiCompatProvider`: 适配所有遵循 OpenAI 标准 RESTful/SSE 规范的大模型（如 DeepSeek、OpenAI、本地 Ollama 等）。
-- **统一门面**：`CoreLlmClient` 提供统一的工厂构造与调用接口。
-- **场景助手**：内置 `SummaryHelper`，简化长文本、会议记录的摘要与行动项提取。
-
----
-
-## 依赖配置
-
-在宿主 App 的 `pubspec.yaml` 中引入：
-
+## 3. 接入方式
+在项目 `pubspec.yaml` 中通过 Git 形式引入：
 ```yaml
 dependencies:
   core_llm:
-    path: packages/core_llm
+    git:
+      url: git@github.com:janzun/flutter_foundation.git
+      path: packages/core_llm
+      ref: llm@1.0.0
 ```
 
----
+## 4. 必要配置
+纯 Dart/Flutter 抽象层与网络协议实现，无原生硬件或平台权限配置要求。
 
-## 快速使用
+## 5. 完整 API 列表
 
-### 1. 初始化客户端
-
+### 5.1 门面客户端 `CoreLlmClient`
 ```dart
-import 'package:core_llm/core_llm.dart';
+class CoreLlmClient {
+  final ILlmProvider provider;
 
-// 方式 A：接入 Google Gemini
-final geminiClient = CoreLlmClient.gemini(
-  apiKey: 'YOUR_GEMINI_API_KEY',
-  modelName: 'gemini-1.5-flash',
-);
+  CoreLlmClient(this.provider);
 
-// 方式 B：接入 DeepSeek 或其他兼容 OpenAI 接口的模型
-final deepseekClient = CoreLlmClient.openAiCompat(
-  apiKey: 'YOUR_DEEPSEEK_API_KEY',
-  baseUrl: 'https://api.deepseek.com/v1',
-  modelName: 'deepseek-chat',
-  providerId: 'deepseek',
-);
-```
+  /// 快速构建 Google Gemini 客户端
+  factory CoreLlmClient.gemini({
+    required String apiKey,
+    String modelName = 'gemini-1.5-flash',
+  });
 
-### 2. 非流式单次生成
+  /// 快速构建 OpenAI 兼容端点客户端（DeepSeek / ChatGPT 等）
+  factory CoreLlmClient.openAiCompat({
+    required String apiKey,
+    required String baseUrl,
+    String modelName = 'gpt-4o-mini',
+    String? providerId,
+  });
 
-```dart
-final response = await geminiClient.generate(
-  LlmRequest(
-    messages: [
-      LlmMessage.system('你是一个专业的 Flutter 架构专家。'),
-      LlmMessage.user('请用三句话总结 Flutter 的优势。'),
-    ],
-    temperature: 0.7,
-  ),
-);
+  /// 非流式生成
+  Future<LlmResponse> generate(LlmRequest request);
 
-print('回答内容: ${response.text}');
-print('消耗 Token: ${response.usage?.totalTokens}');
-```
+  /// 流式 Token/块生成
+  Stream<String> generateStream(LlmRequest request);
 
-### 3. SSE 流式打字机输出
-
-```dart
-final stream = deepseekClient.generateStream(
-  LlmRequest(
-    messages: [
-      LlmMessage.user('请写一段关于架构设计的短文。'),
-    ],
-  ),
-);
-
-// 实时响应文本流
-await for (final chunk in stream) {
-  // 追加渲染到 UI
-  stdout.write(chunk);
+  /// 会议与纪要提炼助手
+  SummaryHelper get summary;
 }
 ```
 
-### 4. 使用 SummaryHelper 进行文本摘要
+### 5.2 核心模型与枚举
 
+#### `LlmRole` 与 `LlmChatMessage`
 ```dart
-final summaryHelper = geminiClient.summary;
+enum LlmRole { system, user, assistant }
 
-final result = await summaryHelper.summarizeMeeting(
-  transcript: '会议讨论了关于底座封装的架构设计，决议将 core_auth 和 core_pay 分离...',
-  language: 'zh',
-);
+class LlmChatMessage {
+  final LlmRole role;
+  final String content;
 
-print('会议要点: ${result.summary}');
-print('行动项列表: ${result.actionItems}');
+  const LlmChatMessage({required this.role, required this.content});
+  factory LlmChatMessage.user(String content);
+  factory LlmChatMessage.system(String content);
+  factory LlmChatMessage.assistant(String content);
+  Map<String, dynamic> toJson();
+}
 ```
 
----
+#### `LlmRequest` 与 `LlmResponse`
+```dart
+class LlmRequest {
+  final List<LlmChatMessage> messages;
+  final String? systemPrompt;
+  final double temperature;
+  final int maxTokens;
+  final Map<String, dynamic>? extraParams;
 
-## 核心 API
+  const LlmRequest({
+    required this.messages,
+    this.systemPrompt,
+    this.temperature = 0.3,
+    this.maxTokens = 2048,
+    this.extraParams,
+  });
 
-| 类 / 接口 | 核心方法 / 说明 |
-| :--- | :--- |
-| `CoreLlmClient` | 统一入口门面：`gemini()` / `openAiCompat()` 工厂构造，提供 `generate()` 与 `generateStream()` |
-| `ILlmProvider` | 底层通用 Provider 接口：`generateText(LlmRequest)` / `generateStream(LlmRequest)` |
-| `LlmRequest` | 请求参数封装：包含 `messages`、`temperature`、`maxTokens`、`model` 等 |
-| `LlmMessage` | 消息结构：支持 `LlmMessage.system()`、`user()`、`assistant()` 构造 |
-| `LlmResponse` | 响应数据结构：包含 `text`、`rawJson`、`usage` (Prompt/Completion/TotalTokens) |
-| `SummaryHelper` | 会议纪要与长文本提炼辅助工具 |
+  factory LlmRequest.prompt(
+    String userPrompt, {
+    String? systemPrompt,
+    double? temperature,
+    int? maxTokens,
+  });
+}
+
+class LlmResponse {
+  final String text;
+  final int? promptTokens;
+  final int? completionTokens;
+  final Map<String, dynamic>? rawResponse;
+
+  const LlmResponse({
+    required this.text,
+    this.promptTokens,
+    this.completionTokens,
+    this.rawResponse,
+  });
+}
+```
+
+### 5.3 抽象接口与异常
+
+#### `ILlmProvider`
+```dart
+abstract class ILlmProvider {
+  String get providerId;
+  Future<LlmResponse> generateText(LlmRequest request);
+  Stream<String> generateStream(LlmRequest request);
+}
+```
+
+#### 异常模型
+```dart
+class LlmException implements Exception {
+  final String message;
+  final String? providerId;
+  final int? statusCode;
+  final dynamic originalError;
+}
+
+class LlmAuthException extends LlmException {...}
+class LlmRateLimitException extends LlmException {...}
+```
+
+### 5.4 结构化纪要助手 `SummaryHelper`
+```dart
+class SummaryHelper {
+  final ILlmProvider provider;
+  const SummaryHelper(this.provider);
+
+  /// 根据长文本转写内容和模板生成精炼 Markdown 总结
+  Future<String> generateMarkdownSummary(
+    String transcript, {
+    String template = 'meeting',
+  });
+}
+
+class MeetingSummaryResult {
+  final String overview;
+  final List<String> keyPoints;
+  final List<String> actionItems;
+  final String rawOutput;
+
+  String toFormattedMarkdown();
+  Map<String, dynamic> toJson();
+  factory MeetingSummaryResult.fromJson(Map<String, dynamic> json, {String raw = ''});
+}
+```

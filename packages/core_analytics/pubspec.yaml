@@ -1,6 +1,6 @@
 name: core_analytics
 description: "High performance, privacy-compliant analytics module for mobile apps based on Janzun Gateway POST /v1/events."
-version: 2.0.0
+version: 1.0.0
 publish_to: 'none'
 
 environment:

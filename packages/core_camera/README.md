@@ -1,111 +1,192 @@
 # core_camera
 
-高性能原生相机插件，专为视觉 AI 和极致抓拍体验打造。支持 **Zero-Shutter-Lag (ZSL) 极速零快门延迟秒拍**、原生 4:3 传感器比例对齐、原子级硬件 AF/AE，并内置零拷贝的原生视觉与人脸检测分析管道（Android ML Kit / iOS Vision）。
+## 1. 介绍
+高性能原生相机插件，专为视觉 AI 和极致抓拍体验打造。支持硬件级 **Zero-Shutter-Lag (ZSL) 零快门延迟秒拍**、原生 4:3 传感器满画幅对齐、原子级硬件 AF/AE 联动测光对焦，并内置零拷贝的原生视觉与人脸实时分析管道（Android ML Kit / iOS Vision），后台异步处理不阻塞 UI 渲染，同时支持离线图片/内存数据的人脸静态检测。
 
----
+## 2. 最新版本 Tag
+`camera@1.0.0`
 
-## 模块定位
-
-- **角色**：高性能底层相机与视觉分析底座。
-- **平台支持**：Android (Camera2 + ML Kit), iOS (AVFoundation + Vision Framework)。
-- **核心特性**：
-  - **ZSL 极速秒拍**：不重新触发拍前重新对焦对流，直接提取已对焦最高清帧，拍照零延迟。
-  - **原子硬件 AF/AE**：支持单点同时联动测光与对焦。
-  - **原生人脸/视觉流**：原生后台实时处理人脸坐标，通过事件流分发，不阻塞 Flutter UI。
-  - **离线图片检测**：支持对本地文件路径或内存字节数组进行快速人脸检测与大小排序。
-
----
-
-## 依赖配置
-
-在宿主 App 的 `pubspec.yaml` 中引入：
-
+## 3. 接入方式
+在项目 `pubspec.yaml` 中通过 Git 形式引入：
 ```yaml
 dependencies:
   core_camera:
-    path: packages/core_camera
+    git:
+      url: git@github.com:janzun/flutter_foundation.git
+      path: packages/core_camera
+      ref: camera@1.0.0
 ```
 
----
+## 4. 必要配置
 
-## 快速使用
+### 4.1 iOS 配置 (`ios/Runner/Info.plist`)
+需要添加相机使用权限描述：
+```xml
+<key>NSCameraUsageDescription</key>
+<string>需要访问您的相机以进行拍摄与视觉识别</string>
+```
 
-### 1. 初始化相机与预览
+### 4.2 Android 配置 (`android/app/src/main/AndroidManifest.xml`)
+声明相机硬件与特性权限：
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-feature android:name="android.hardware.camera" />
+<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+```
 
+## 5. 完整 API 列表
+
+### 5.1 顶层入口类 `CoreCamera` & 顶层函数
 ```dart
-import 'package:core_camera/core_camera.dart';
-import 'package:flutter/material.dart';
+/// 硬件探测与静态图像人脸检测
+abstract final class CoreCamera {
+  /// 查询当前设备所有物理摄像头
+  static Future<List<CameraDescription>> availableCameras();
 
-// 1. 获取设备可用摄像头
-final cameras = await availableCameras();
-final frontCamera = cameras.firstWhere(
-  (c) => c.lensFacing == CameraLensFacing.front,
-  orElse: () => cameras.first,
-);
+  /// 本地文件静态人脸检测（自动按面积从大到小排序）
+  static Future<List<DetectedFace>> detectFacesFromFile(String filePath);
 
-// 2. 创建并初始化 Controller
-final controller = CameraController(
-  frontCamera,
-  ResolutionPreset.high,
-  enableAudio: false,
-  analyzerMode: AnalyzerMode.faceDetection, // 开启原生人脸分析
-);
+  /// 内存图片字节数据静态人脸检测
+  static Future<List<DetectedFace>> detectFacesFromBytes(Uint8List bytes);
+}
 
-await controller.initialize();
+/// 兼容官方接口风格的顶层函数
+Future<List<CameraDescription>> availableCameras();
+```
 
-// 3. 在 Widget 中渲染预览组件
-Widget buildPreview() {
-  return CoreCameraPreview(controller: controller);
+### 5.2 相机控制器 `CameraController`
+```dart
+class CameraController extends ValueNotifier<CameraValue> {
+  final CameraDescription description;
+  final ResolutionPreset resolutionPreset;
+  final CameraAspectRatio aspectRatio;
+  final bool enableAudio;
+  final AnalyzerMode analyzerMode;
+  final bool enableFaceAutoFocus;
+
+  CameraController(
+    CameraDescription description, [
+    ResolutionPreset resolutionPreset = ResolutionPreset.max,
+  ]);
+
+  CameraController.custom(
+    CameraDescription description, {
+    ResolutionPreset resolutionPreset = ResolutionPreset.max,
+    CameraAspectRatio aspectRatio = CameraAspectRatio.ratio4_3,
+    bool enableAudio = false,
+    AnalyzerMode analyzerMode = AnalyzerMode.faceDetection,
+    bool enableFaceAutoFocus = true,
+  });
+
+  int get textureId;
+  Stream<FaceAnalysisEvent> get faceAnalysisStream;
+
+  Future<void> initialize();
+  Future<void> pauseAnalysis();
+  Future<void> resumeAnalysis();
+  Future<void> setAnalyzerMode(AnalyzerMode mode);
+  Future<XFile> takePicture();
+  Future<void> setFocusAndExposurePoint(Offset point);
+  Future<void> setFocusPoint(Offset? point);
+  Future<void> setExposurePoint(Offset? point);
+  Future<void> setFlashMode(FlashMode mode);
+  Future<void> setFocusMode(FocusMode mode);
+  Future<void> setExposureMode(ExposureMode mode);
+  Future<void> setZoomLevel(double zoom);
+  @override
+  Future<void> dispose();
 }
 ```
 
-### 2. 监听实时人脸检测事件
-
+### 5.3 纹理预览组件 `CameraPreview`
 ```dart
-controller.faceAnalysisStream.listen((FaceAnalysisEvent event) {
-  if (event.faces.isNotEmpty) {
-    final primaryFace = event.primaryFace; // 已按面积排序，首位为最大人脸
-    print('检测到人脸: 边界框=${primaryFace?.boundingBox}, 俯仰角=${primaryFace?.headEulerAngleX}');
-  }
-});
+class CameraPreview extends StatelessWidget {
+  final CameraController controller;
+  final Widget? child;
+
+  const CameraPreview(
+    this.controller, {
+    super.key,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context);
+}
 ```
 
-### 3. 极速拍照
-
+### 5.4 状态快照 `CameraValue`
 ```dart
-// ZSL 极速秒拍，返回 XFile 文件引用
-final XFile file = await controller.takePicture();
-print('照片已保存到: ${file.path}');
+class CameraValue {
+  final bool isInitialized;
+  final bool isTakingPicture;
+  final Size? previewSize;
+  final FlashMode flashMode;
+  final FocusMode focusMode;
+  final ExposureMode exposureMode;
+  final DeviceOrientation deviceOrientation;
+  final CameraDescription description;
+  final int textureId;
+  final bool handlesCropAndRotation;
+  final String? errorDescription;
+
+  double get aspectRatio;
+  double get portraitAspectRatio;
+
+  CameraValue copyWith({...});
+}
 ```
 
-### 4. 离线图片人脸检测 (静态文件/字节)
-
+### 5.5 类型与枚举
 ```dart
-// 离线检测本地相册或文件中的人脸
-final List<DetectedFace> faces = await CoreCamera.detectFacesFromFile('/path/to/image.jpg');
+enum CameraLensDirection { front, back, external }
+enum FlashMode { off, auto, always, torch }
+enum FocusMode { auto, locked }
+enum ExposureMode { auto, locked }
+enum ResolutionPreset { low, medium, high, veryHigh, ultraHigh, max }
+enum CameraAspectRatio { ratio4_3, ratio16_9 }
+enum AnalyzerMode { none, faceDetection }
 
-// 或直接从内存数据中检测
-final List<DetectedFace> memFaces = await CoreCamera.detectFacesFromBytes(uint8Bytes);
+class CameraDescription {
+  final String name;
+  final CameraLensDirection lensDirection;
+  final int sensorOrientation;
+}
+
+class CameraException implements Exception {
+  final String code;
+  final String? description;
+}
 ```
 
----
+### 5.6 视觉与人脸事件模型
+```dart
+class FaceAnalysisEvent {
+  final List<DetectedFace> faces;
+  final double? ambientLightLux;
+  final int sensorWidth;
+  final int sensorHeight;
+  final int orientation;
+  final int timestampMs;
 
-## 核心 API
+  DetectedFace? get primaryFace;
+}
 
-### `CoreCamera` (静态类)
-- `CoreCamera.availableCameras()`: 获取当前可用物理摄像头列表。
-- `CoreCamera.detectFacesFromFile(String filePath)`: 离线分析本地文件中的人脸并排序。
-- `CoreCamera.detectFacesFromBytes(Uint8List bytes)`: 离线分析内存二进制图片中的人脸。
-
-### `CameraController`
-- `initialize()`: 初始化原生相机管线与纹理绑定。
-- `takePicture()`: 零延迟 ZSL 原生拍照，返回 `XFile`。
-- `setFocusAndExposurePoint(Offset point)`: 原子级硬件 AF+AE 测光对焦（归一化坐标 `[0.0, 1.0]`）。
-- `setFlashMode(FlashMode mode)`: 设置闪光灯模式（`off`, `auto`, `always`, `torch`）。
-- `setZoomLevel(double zoom)`: 调整焦距。
-- `faceAnalysisStream`: 人脸实时流通知。
-- `pauseAnalysis()` / `resumeAnalysis()`: 动态暂停/恢复视觉分析。
-- `dispose()`: 释放相机与原生句柄。
-
-### `CoreCameraPreview`
-- 自适应 4:3 比例或全屏铺满的原生纹理预览组件，内部已处理平台级旋转与镜像。
+class DetectedFace {
+  final Rect boundingBox;
+  final Rect normalizedBox;
+  final double headEulerAngleX;
+  final double headEulerAngleY;
+  final double headEulerAngleZ;
+  final double? leftEyeOpenProbability;
+  final double? rightEyeOpenProbability;
+  final double? smilingProbability;
+  final int? trackingId;
+  final double? eyeY;
+  final double? chinY;
+  final double? leftEyeX;
+  final double? leftEyeY;
+  final double? rightEyeX;
+  final double? rightEyeY;
+}
+```

@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 import 'model/analytics_event.dart';
 import 'model/device_context.dart';
 import 'model/event_names.dart';
@@ -18,13 +17,11 @@ class AnalyticsImpl with WidgetsBindingObserver {
   static final AnalyticsImpl instance = AnalyticsImpl._();
 
   String? _appId;
-  String? _endpoint;
   String? _userId;
   final Map<String, dynamic> _superProperties = {};
 
   DeviceContext? _deviceContext;
   EventQueue? _queue;
-  final Uuid _uuid = const Uuid();
 
   static const String _prefKeyHasInstalled = 'core_analytics_has_installed';
   bool _errorHandlersRegistered = false;
@@ -43,7 +40,6 @@ class AnalyticsImpl with WidgetsBindingObserver {
     final resolvedEndpoint = prod
         ? 'https://api.janzun.com/v1/events'
         : 'https://test.janzun.com/v1/events';
-    _endpoint = resolvedEndpoint;
 
     // 0. 预置公共属性（如已包含 user_id 会自动解析绑定）
     if (superProperties != null && superProperties.isNotEmpty) {

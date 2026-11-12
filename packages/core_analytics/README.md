@@ -1,202 +1,203 @@
-# Janzun Core Analytics (Flutter)
+# core_analytics
 
-Janzun 统一数据分析与埋点 Flutter 核心客户端库（对齐 Janzun 统一网关 `POST /v1/events` 协议）。
+## 1. 介绍
+移动端高性能、隐私合规的埋点模块。采用零第三方云 SDK 方案，直接对接统一网关协议 `POST /v1/events`。内置应用生命周期全自动追踪、路由停留时长自动结算、批量微任务队列上报（内存缓冲+定时刷新+切入后台兜底）、全局公共属性维护与无侵入异常捕获。
 
-适用于 Janzun 生态下的所有 Flutter 移动端（iOS / Android / macOS / Web / Windows）应用。
+## 2. 最新版本 Tag
+`analytics@1.0.0`
 
----
-
-## 核心设计理念
-
-1. **统一网关对齐**：零外部云厂商 SDK 依赖（无 Supabase SDK），纯标准 HTTP 数组批量上报（单批次上限 30 条，Payload < 16KB）。
-2. **全自动底层托管**：
-   - **4 大应用生命周期**（`app_install`, `app_launch`, `app_show`, `app_hide`）全自动触发；
-   - **页面浏览与停留时长**（`page_view`，携带 `duration_sec`）依托 `AnalyticsRouteObserver` 离开页面时全自动结算并发射；
-   - **全局未捕获崩溃托管**：自动拦截 `FlutterError` 与 `PlatformDispatcher.instance.onError`，截取无害堆栈直发上报。
-3. **极简单一初始化**：在用户明示同意隐私政策后，一行 `Analytics.initialize(...)` 搞定配置、公共属性预置与全局异常监控。
-4. **用户交互严格手动控制**：绝无杂乱无意义的垃圾点击数据，所有用户交互（Action）、卡片曝光（Impression）、商业转化（Conversion）均显式调用。
-5. **绝对隐私安全与合规**：
-   - 零 PII 收集（绝不采集姓名、手机号、通信录、相册等敏感信息）；
-   - 不采集硬件唯一指纹（无 IMEI、MAC、IDFA，无 ATT 弹窗）；
-   - 设备 ID 使用本地持久化匿名 UUID；
-   - 仅在用户同意隐私政策后调用，满足 Apple App Store、Google Play 及国内应用商店极严苛审查。
-
----
-
-## 依赖配置
-
-在模块或 App 的 `pubspec.yaml` 中添加依赖：
-
+## 3. 接入方式
+在项目 `pubspec.yaml` 中通过 Git 形式引入：
 ```yaml
 dependencies:
   core_analytics:
-    path: package/core_analytics # 或引用自公共 package 目录
+    git:
+      url: git@github.com:janzun/flutter_foundation.git
+      path: packages/core_analytics
+      ref: analytics@1.0.0
 ```
 
----
-
-## 接入步骤
-
-### 第一步：初始化与全局异常托管（在隐私政策同意后）
-
-对于国内合规场景，建议在用户点击《隐私政策》弹窗的“同意”之后调用；海外无弹窗场景可在 `main()` 的 `runApp()` 前调用。
-
+## 4. 必要配置
+本模块依赖 `device_info_plus` 和 `package_info_plus`，无额外原生插件权限要求。若要自动追踪页面路由访问与停留时长，需在应用的导航器中注册路由监听器：
 ```dart
-import 'package:core_analytics/analytics.dart';
+MaterialApp(
+  navigatorObservers: [
+    AnalyticsRouteObserver(),
+  ],
+  // ...
+)
+```
 
-void onPrivacyPolicyAgreed() async {
-  // 单方法搞定：初始化 + 预设公共属性 + 生命周期托管 + 崩溃拦截
-  await Analytics.initialize(
-    appId: '00000000-0000-0000-0000-000000000001', // common.apps 表的唯一 UUID
-    endpoint: 'https://api.janzun.com/v1/events',     // 统一网关地址 (可选，默认已为此地址)
-    channel: 'google_play',                          // 应用分发渠道标识
-    superProperties: {
-      'app_flavor': 'production',
-      'user_id': currentUserId,                      // 若启动时已登录可直接传入
-    },
-    autoCaptureErrors: true,                         // 默认 true，自动捕获 FlutterError 与引擎未捕获异常
-  );
+## 5. 完整 API 列表
 
-  Navigator.of(context).pushReplacementNamed('/home');
+### 5.1 对外门面类 `Analytics`
+```dart
+class Analytics {
+  /// 初始化埋点模块
+  static Future<void> initialize({
+    required String appId,
+    bool prod = true,
+    String? channel,
+    Map<String, dynamic>? superProperties,
+    bool autoCaptureErrors = true,
+    int batchSize = 20,
+    Duration flushInterval = const Duration(seconds: 15),
+  });
+
+  /// 设置全局公共属性（传入包含 user_id 会自动绑定当前用户）
+  static void setSuperProperties(Map<String, dynamic> properties);
+
+  /// 清空全局公共属性并解绑登录用户状态
+  static void clearSuperProperties();
+
+  /// 仅清除当前登录用户标识（保留设备环境与渠道等公共属性）
+  static void clearUserId();
+
+  /// 手动用户交互点击打点 (Action)
+  static void trackAction(
+    String actionName, {
+    String? pageName,
+    Map<String, dynamic>? properties,
+    bool isImmediate = false,
+  });
+
+  /// 手动曝光展示打点 (Impression)
+  static void trackImpression(
+    String moduleName, {
+    String? pageName,
+    Map<String, dynamic>? properties,
+    bool isImmediate = false,
+  });
+
+  /// 手动核心商业转化打点 (Conversion，默认立即上报)
+  static void trackConversion(
+    String conversionName, {
+    String? pageName,
+    Map<String, dynamic>? properties,
+  });
+
+  /// 手动业务异常与错误监控打点 (Error，默认立即上报)
+  static void trackError(
+    String errorName, {
+    required String message,
+    String? stackTrace,
+    String? pageName,
+    Map<String, dynamic>? properties,
+  });
+
+  /// 自定义长尾业务打点 (Custom)
+  static void trackCustom(
+    String eventName, {
+    EventType type = EventType.action,
+    String? pageName,
+    Map<String, dynamic>? properties,
+    bool isImmediate = false,
+  });
+
+  /// 立即强制清空并上报当前队列中的全部积压事件
+  static Future<void> flush();
 }
 ```
 
-### 第二步：挂载页面流转与停留时长监听器
-
-在根组件 `MaterialApp` 或 `CupertinoApp` 中注入 `AnalyticsRouteObserver`：
-
+### 5.2 路由观察器 `AnalyticsRouteObserver`
 ```dart
-import 'package:flutter/material.dart';
-import 'package:core_analytics/analytics.dart';
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class AnalyticsRouteObserver extends RouteObserver<PageRoute<dynamic>> {
+  AnalyticsRouteObserver({String Function(Route<dynamic>)? nameExtractor});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'My App',
-      // 注册路由观察器：离开页面时自动结算并上报 page_view 与 duration_ms
-      navigatorObservers: [
-        AnalyticsRouteObserver(),
-      ],
-      routes: {
-        '/home': (context) => const HomeScreen(),
-        '/paywall': (context) => const PaywallScreen(),
-      },
-    );
-  }
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute);
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute);
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute});
 }
 ```
 
----
+### 5.3 数据枚举与模型
 
-## 完整 API 规范与使用示例
-
-### 1. 用户状态与公共属性管理
-
+#### `EventType`
 ```dart
-// 1. 用户登录成功：绑定 user_id 与其他用户属性
-Analytics.setSuperProperties({
-  'user_id': 'usr_98a72b1c',
-  'is_vip': true,
-  'vip_type': 'annual',
-});
+enum EventType {
+  lifecycle('lifecycle'),
+  pageView('page_view'),
+  impression('impression'),
+  action('action'),
+  conversion('conversion'),
+  error('error');
 
-// 2. 用户退出登录：仅清除 user_id（保留 channel 等基础环境属性）
-Analytics.clearUserId();
-
-// 3. 重置清空所有公共属性
-Analytics.clearSuperProperties();
-```
-
-### 2. 手动业务打点
-
-#### A. 用户交互点击 (Action)
-```dart
-// 建议优先使用 EventNames 常量
-Analytics.trackAction(
-  EventNames.clickPay,
-  properties: {
-    'plan': 'pro_yearly',
-    'price': 29.99,
-  },
-);
-```
-
-#### B. 模块与卡片曝光 (Impression)
-```dart
-Analytics.trackImpression(
-  EventNames.paywallShow,
-  properties: {
-    'trigger_source': 'export_high_res_button',
-  },
-);
-```
-
-#### C. 核心商业转化 (Conversion - 默认立即直发)
-```dart
-Analytics.trackConversion(
-  EventNames.paymentSuccess,
-  properties: {
-    'order_id': 'ord_20261105001',
-    'amount': 29.99,
-    'currency': 'USD',
-  },
-);
-```
-
-#### D. 手动业务异常捕获 (Error - 默认立即直发)
-```dart
-try {
-  await apiService.checkout();
-} catch (e, stack) {
-  Analytics.trackError(
-    EventNames.paymentError,
-    message: e.toString(),
-    stackTrace: stack.toString().split('\n').take(10).join('\n'),
-    properties: {
-      'order_id': 'ord_20261105001',
-    },
-  );
+  final String value;
+  const EventType(this.value);
 }
 ```
 
-#### E. 长尾特殊自定义打点 (Custom)
+#### `EventNames`
 ```dart
-Analytics.trackCustom(
-  'custom_feature_used',
-  type: EventType.action,
-  properties: {
-    'custom_param': 'value',
-  },
-);
+class EventNames {
+  // 4 大生命周期
+  static const String appInstall = 'app_install';
+  static const String appLaunch = 'app_launch';
+  static const String appShow = 'app_show';
+  static const String appHide = 'app_hide';
+
+  // 页面事件
+  static const String pageView = 'page_view';
+
+  // 典型商业转化事件
+  static const String paywallShow = 'paywall_show';
+  static const String clickPay = 'click_pay';
+  static const String paymentSuccess = 'payment_success';
+  static const String paymentFailed = 'payment_failed';
+
+  // 异常监控
+  static const String crash = 'crash';
+  static const String apiError = 'api_error';
+}
 ```
 
-#### F. 强制清空并上报队列
+#### `AnalyticsEvent`
 ```dart
-await Analytics.flush();
+class AnalyticsEvent {
+  final String eventId;
+  final String appId;
+  final String? userId;
+  final String deviceId;
+  final String sessionId;
+  final String eventType;
+  final String eventName;
+  final String? pageName;
+  final Map<String, dynamic> properties;
+  final String platform;
+  final String? deviceBrand;
+  final String? deviceModel;
+  final String? osVersion;
+  final String? appVersion;
+  final String? channel;
+  final int? screenWidth;
+  final int? screenHeight;
+  final String? networkType;
+  final String? timezone;
+  final String? language;
+  final String timestamp;
+
+  Map<String, dynamic> toJson();
+}
 ```
 
----
+#### `DeviceContext`
+```dart
+class DeviceContext {
+  final String deviceId;
+  final String platform;
+  final String? deviceBrand;
+  final String? deviceModel;
+  final String? osVersion;
+  final String? appVersion;
+  final String? channel;
+  final int? screenWidth;
+  final int? screenHeight;
+  final String? timezone;
+  final String? language;
 
-## 自动打点事件参考
-
-| 事件标识 (`event_name`) | 事件类型 (`event_type`) | 触发时机与附带属性 |
-| :--- | :--- | :--- |
-| `app_install` | `lifecycle` | App 首次启动时（本地持久化记录），属性：`{'is_first_time': true}`。 |
-| `app_launch` | `lifecycle` | App 冷启动进入时，属性：`{'launch_type': 'cold'}`。 |
-| `app_show` | `lifecycle` | App 从后台切回前台（`AppLifecycleState.resumed`）。 |
-| `app_hide` | `lifecycle` | App 退至后台（`AppLifecycleState.paused / hidden`），**自动触发队列 flush**。 |
-| `page_view` | `page_view` | 离开当前路由页面时自动触发。属性自动携带：`duration_sec`（秒）。 |
-| `crash` | `error` | 未捕获的 UI / 异步异常。属性：`error_message`, `stack_trace`（前 10 行）。 |
-
----
-
-## 单元测试支持
-
-在测试用例中验证打点无需真实发起网络请求：
-
-```bash
-flutter test
+  Map<String, dynamic> toMap();
+}
 ```
