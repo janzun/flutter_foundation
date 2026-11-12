@@ -11,10 +11,10 @@
 | **[`core_arch`](packages/core_arch)** | 架构基建：UDF MVVM、网络防御、0 权限沙盒 I/O、流式防 OOM 聚合备份 | `arch@1.0.0` | 纯 Dart / 零敏感权限 |
 | **[`core_database`](packages/core_database)** | 结构化存储：Isar NoSQL、代码优先 (Code-First)、跨表原子事务、防毁库安全快照还原 | `database@1.0.0` | 路径外部注入 / 彻底解耦 |
 | **[`core_io`](packages/core_io)** | 跨端资产交互：原生相册选取/拍摄、文件另存为/下载、跨端流式 PickedFile | `io@1.0.0` | 抹平 Mobile/Desktop/Web |
-| **[`core_auth_base`](packages/core_auth_base)** | 统一身份契约：IAuthService 抽象基类、通用 AuthUser、TokenCredential 实体 | `auth_base@1.0.0` | 抽象层 / 无厂商锁死 |
+| **[`core_auth_base`](packages/core_auth_base)** | 统一身份基础抽象：通用用户模型 `UserData`、权益资产 `EntitlementInfo`、`Auth` 静态门面与 `BaseAuthService` 契约抽象（**禁止业务 App 直接依赖，仅供实现包继承**） | `auth_base@1.0.0` | 纯抽象契约 / 禁 App 直连 |
 | **[`core_auth_apple`](packages/core_auth_apple)** | Apple 渠道登录复用：专为 iOS/macOS 打造的渠道登录闭环，全量透传 `core_auth_base` 并默认原生 Apple 授权 | `auth_apple@1.0.0` | iOS / macOS / 原生集成 |
 | **[`core_auth_google`](packages/core_auth_google)** | Google 渠道登录复用：专为 Android/Web 打造的渠道登录闭环，全量透传 `core_auth_base` 并默认原生 Google 授权 | `auth_google@1.0.0` | Android / iOS / Web 跨端 |
-| **[`core_pay_base`](packages/core_pay_base)** | 支付领域抽象：IPayService 契约、Freezed 不可变订阅模型、统一 PayResult 状态机 | `pay_base@1.0.0` | 纯领域抽象 / 零云依赖 |
+| **[`core_pay_base`](packages/core_pay_base)** | 统一支付基础抽象：商品模型 `ProductInfo`、结果模型 `PayResult`、`Pay` 静态门面与 `BasePayService` 契约抽象（**禁止业务 App 直接依赖，仅供实现包继承**） | `pay_base@1.0.0` | 纯抽象契约 / 禁 App 直连 |
 | **[`core_pay_revenuecat`](packages/core_pay_revenuecat)** | 支付实现：RevenueCat Purchases SDK 适配器、StoreProduct 统一转换 | `pay_revenuecat@1.0.0` | 抹平 AppStore/GooglePlay |
 | **[`core_analytics`](packages/core_analytics)** | 高性能埋点：统一网关协议 POST /v1/events、全自动路由停留统计、批量异步微任务队列 | `analytics@1.0.0` | 零第三方云 SDK 依赖 |
 | **[`core_camera`](packages/core_camera)** | 原生极速相机：Zero-Shutter-Lag 秒拍、4:3 画幅满帧、原子 AF/AE、零拷贝人脸实时分析流 | `camera@1.0.0` | Android CameraX + iOS AVFoundation |

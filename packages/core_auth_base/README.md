@@ -8,13 +8,17 @@
 
 ## 📦 接入方式 (Installation)
 
-> 提示：在实际工程中，若针对特定平台发行，建议直接接入渠道实现包 `core_auth_apple`（iOS/macOS）或 `core_auth_google`（Android）；纯 Web/桌面端或自定义渠道可直接接入本基底包。
+> ⚠️ **重要规范**：
+> `core_auth_base` 属于**纯核心领域抽象与契约定义包**，**严禁在实际业务 App 中直接接入使用**。
+> - **宿主 App 端**：必须根据目标平台/渠道接入具体的实现包，如 `core_auth_apple`（iOS/macOS）或 `core_auth_google`（Android/Web），具体实现包会全量透传本包的所有模型与门面；
+> - **扩展开发者**：仅在需要扩展新渠道（如实现桌面端登录、微信/TikTok 登录、第三方 OAuth 适配器）时，作为内部依赖引入本包并继承 `BaseAuthService`。
 
 ```yaml
+# 仅供渠道实现包的 pubspec.yaml 依赖，业务 App 严禁直接依赖
 dependencies:
   core_auth_base:
     git:
-      url: https://github.com/janzun/flutter_foundation.git
+      url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_base
       ref: auth_base@1.0.0
 ```

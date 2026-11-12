@@ -8,13 +8,17 @@
 
 ## 📦 接入方式 (Installation)
 
-> 提示：在实际工程中，出海内购建议直接接入基于 RevenueCat 的实现包 `core_pay_revenuecat`。
+> ⚠️ **重要规范**：
+> `core_pay_base` 属于**纯核心支付领域抽象与契约定义包**，**严禁在实际业务 App 中直接接入使用**。
+> - **宿主 App 端**：必须接入具体的支付实现包（如海外移动端接入 `core_pay_revenuecat`）；
+> - **扩展开发者**：仅在需要扩展新支付实现（如自建 Apple StoreKit 2 / Google Play Billing 原生直连、Stripe 桌面/Web 端收银台、微信/支付宝原生回调等）时，作为内部依赖引入本包并继承 `BasePayService`，App 最终只接入封装好的具体实现包。
 
 ```yaml
+# 仅供支付实现包的 pubspec.yaml 依赖，业务 App 严禁直接依赖
 dependencies:
   core_pay_base:
     git:
-      url: https://github.com/janzun/flutter_foundation.git
+      url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_pay_base
       ref: pay_base@1.0.0
 ```
