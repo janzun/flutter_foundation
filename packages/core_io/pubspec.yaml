@@ -1,0 +1,20 @@
+name: core_io
+description: "Universal file and media I/O bridge for Flutter across Mobile, Desktop, and Web."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  image_picker: ^1.1.2
+  file_picker: ^8.1.7
+  gal: ^2.3.1
+  mime: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
