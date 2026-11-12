@@ -154,8 +154,9 @@ class RevenueCatPayService extends BasePayService {
       }
 
       final storeProduct = storeProducts.first;
-      final purchaseResult =
-          await Purchases.purchaseStoreProduct(storeProduct);
+      final purchaseResult = await Purchases.purchase(
+        PurchaseParams.storeProduct(storeProduct),
+      );
 
       // 支付成功，立即触发资产可能变动的全局通知
       onEntitlementsChanged?.call();
