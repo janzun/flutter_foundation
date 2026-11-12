@@ -8,7 +8,7 @@
 
 | Package | 职责介绍 | 最新 Tag | 依赖与特性 |
 | :--- | :--- | :--- | :--- |
-| **[`core_arch`](packages/core_arch)** | 架构基建：UDF MVVM、网络防御、0 权限沙盒 I/O、流式防 OOM 聚合备份 | `arch@1.0.0` | 纯 Dart / 零敏感权限 |
+| **[`core_arch`](packages/core_arch)** | 架构基建：UDF MVVM、网络防御、0 权限沙盒 I/O、流式防 OOM 聚合备份、合规评分引导 | `arch@1.1.0` | 纯 Dart / 零敏感权限 |
 | **[`core_database`](packages/core_database)** | 结构化存储：Isar NoSQL、代码优先 (Code-First)、跨表原子事务、防毁库安全快照还原 | `database@1.0.0` | 路径外部注入 / 彻底解耦 |
 | **[`core_io`](packages/core_io)** | 跨端资产交互：原生相册选取/拍摄、文件另存为/下载、跨端流式 PickedFile | `io@1.0.0` | 抹平 Mobile/Desktop/Web |
 | **[`core_auth_base`](packages/core_auth_base)** | 统一身份基础抽象：通用用户模型 `UserData`、权益资产 `EntitlementInfo`、`Auth` 静态门面与 `BaseAuthService` 契约抽象（**禁止业务 App 直接依赖，仅供实现包继承**） | `auth_base@1.0.0` | 纯抽象契约 / 禁 App 直连 |
@@ -33,7 +33,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_arch
-      ref: arch@1.0.0
+      ref: arch@1.1.0
 
   # 本地数据库 (按需)
   core_database:

@@ -38,6 +38,7 @@ export 'transitions/app_transitions.dart';
 // Utils
 export 'utils/dialog_util.dart';
 export 'utils/logger.dart';
+export 'utils/rate_app_util.dart';
 export 'utils/toast_util.dart';
 
 // Widgets & UI-level Animations

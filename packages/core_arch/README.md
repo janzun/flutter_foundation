@@ -1,10 +1,10 @@
 # core_arch
 
-工业级 Flutter 基础架构核心底座，涵盖单向数据流 MVVM 架构、网络防御客户端、0 敏感权限安全沙盒文件管理、流式防 OOM 聚合备份、响应式布局及通用扩展。
+工业级 Flutter 基础架构核心底座，涵盖单向数据流 MVVM 架构、网络防御客户端、0 敏感权限安全沙盒文件管理、流式防 OOM 聚合备份、合规评分引导、响应式布局及通用扩展。
 
 ## 🏷️ 最新版本 Tag
 
-`arch@1.0.0`
+`arch@1.1.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -14,7 +14,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_arch
-      ref: arch@1.0.0
+      ref: arch@1.1.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -213,5 +213,19 @@ class EventBus {
   static void emit<T>(T event);
   static Stream<T> on<T>();
   static Future<void> destroy();
+}
+```
+
+### 5. 应用评分引导 (`RateAppUtil`)
+
+合规设计：无情绪分流（Google Play / Apple 禁止按态度筛选评分），门槛达标后直接唤起系统原生评分。依赖 `SpUtil.init()`。
+
+```dart
+class RateAppUtil {
+  /// 业务高光点调用：计数 +1，满足 [事件次数/首次记录天数/冷却期/当前版本未唤起] 后唤起系统评分；返回是否发起请求
+  static Future<bool> trigger({required String eventKey, int minEvents = 3, int minDays = 2, int coolDownDays = 60});
+
+  /// 设置页主动评分：无门槛，系统评分不可用时跳转商店（iOS 需 appStoreId）
+  static Future<void> requestReview({String? appStoreId});
 }
 ```
