@@ -12,7 +12,7 @@
 dependencies:
   core_database:
     git:
-      url: https://github.com/janzun/flutter_foundation.git
+      url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_database
       ref: database@1.0.0
 

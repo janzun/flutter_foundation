@@ -14,7 +14,7 @@
 dependencies:
   core_pay_revenuecat:
     git:
-      url: https://github.com/janzun/flutter_foundation.git
+      url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_pay_revenuecat
       ref: pay_revenuecat@1.0.0
 ```

@@ -12,7 +12,7 @@
 dependencies:
   core_io:
     git:
-      url: https://github.com/janzun/flutter_foundation.git
+      url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_io
       ref: io@1.0.0
 ```

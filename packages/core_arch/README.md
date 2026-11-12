@@ -12,7 +12,7 @@
 dependencies:
   core_arch:
     git:
-      url: https://github.com/janzun/flutter_foundation.git
+      url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_arch
       ref: arch@1.0.0
 ```
