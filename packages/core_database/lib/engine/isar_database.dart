@@ -92,6 +92,24 @@ class IsarDatabase {
     });
   }
 
+  /// 执行异步写事务（支持跨多个 DAO 编排原子操作）。
+  ///
+  /// - [callback]: 包含写操作的异步闭包。
+  /// - [silent]: 若为 true，不触发任何 watcher 通知。
+  Future<T> writeTxn<T>(
+    Future<T> Function() callback, {
+    bool silent = false,
+  }) async {
+    final current = isar;
+    return await current.writeTxn<T>(callback, silent: silent);
+  }
+
+  /// 执行异步只读事务。
+  Future<T> txn<T>(Future<T> Function() callback) async {
+    final current = isar;
+    return await current.txn<T>(callback);
+  }
+
   /// 获取当前数据库集合数据占用的总磁盘字节大小。
   Future<int> getSize({bool includeIndexes = false, bool includeLinks = false}) async {
     final current = isar;

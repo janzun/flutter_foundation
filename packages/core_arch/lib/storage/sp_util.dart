@@ -94,6 +94,75 @@ class SpUtil {
     return await _instance.clear();
   }
 
+  // === 全量导出与导入恢复 (备份与还原闭环) ===
+
+  /// 导出当前 SharedPreferences 中的所有键值数据为字典
+  ///
+  /// - [excludeKeys]: 可选排除的键名集合（如隐私协议状态、临时时间戳等无需跨设备迁移的键）
+  static Map<String, dynamic> exportAll({Set<String>? excludeKeys}) {
+    final allKeys = _instance.getKeys();
+    final result = <String, dynamic>{};
+
+    for (final key in allKeys) {
+      if (excludeKeys != null && excludeKeys.contains(key)) continue;
+      final val = _instance.get(key);
+      if (val != null) {
+        if (val is List<String>) {
+          result[key] = List<String>.from(val);
+        } else {
+          result[key] = val;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /// 从字典全量导入/恢复键值数据
+  ///
+  /// - [data]: 导入的数据字典（如由 BackupExtractedData.kvData 解包得到）
+  /// - [clearBefore]: 导入前是否先清空当前现有的所有数据，默认 false
+  ///
+  /// 自动防御 JSON 反序列化导致的 `List<dynamic>` 强转类型丢失陷阱。
+  static Future<bool> importAll(
+    Map<String, dynamic> data, {
+    bool clearBefore = false,
+  }) async {
+    if (clearBefore) {
+      await clear();
+    }
+
+    var allSuccess = true;
+
+    for (final entry in data.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      if (value == null) continue;
+
+      bool success = false;
+      if (value is bool) {
+        success = await setBool(key, value);
+      } else if (value is int) {
+        success = await setInt(key, value);
+      } else if (value is double) {
+        success = await setDouble(key, value);
+      } else if (value is String) {
+        success = await setString(key, value);
+      } else if (value is List) {
+        // 关键防御：JSON 解码出来的类型为 List<dynamic>，必须安全转换为 List<String>
+        final stringList = value.map((e) => e.toString()).toList();
+        success = await setStringList(key, stringList);
+      }
+
+      if (!success) {
+        allSuccess = false;
+      }
+    }
+
+    return allSuccess;
+  }
+
   // === 常用业务预置属性 ===
 
   static const String _kKeyPrivacyAgreed = 'core_arch_sp_privacy_agreed';

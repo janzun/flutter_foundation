@@ -14,6 +14,7 @@ class ToastUtil {
       GlobalKey<NavigatorState>();
 
   static bool _isLoadingShowing = false;
+  static BuildContext? _loadingDialogContext;
 
   /// 展示悬浮 SnackBar 轻提示
   ///
@@ -77,6 +78,7 @@ class ToastUtil {
       barrierDismissible: false,
       useRootNavigator: true,
       builder: (ctx) {
+        _loadingDialogContext = ctx;
         return PopScope(
           canPop: false,
           child: Center(
@@ -119,16 +121,26 @@ class ToastUtil {
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      // 当弹窗因任何原因（包含底层路由被替换）销毁时，自动复位状态
+      _isLoadingShowing = false;
+      _loadingDialogContext = null;
+    });
   }
 
-  /// 关闭全屏阻塞式 Loading
+  /// 关闭全屏阻塞式 Loading（精准靶向关闭，杜绝盲目 pop 误关闭业务页面路由）
   static void hideLoading() {
     if (!_isLoadingShowing) return;
     _isLoadingShowing = false;
-    final context = navigatorKey.currentContext;
-    if (context != null) {
-      Navigator.of(context, rootNavigator: true).pop();
+
+    final dialogCtx = _loadingDialogContext;
+    _loadingDialogContext = null;
+
+    if (dialogCtx != null && dialogCtx.mounted) {
+      final navigator = Navigator.of(dialogCtx, rootNavigator: true);
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
     }
   }
 }

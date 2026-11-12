@@ -6,6 +6,10 @@ import '../mvvm/result.dart';
 class DioClient {
   final Dio dio;
 
+  /// 最近一次触发 401 回调的时间戳（用于平息并发 401 导致的重复跳转风暴）
+  static DateTime? _lastUnauthorizedTime;
+  static const Duration _unauthorizedThrottle = Duration(seconds: 2);
+
   DioClient._(this.dio);
 
   /// 创建配置完整的 DioClient 实例
@@ -51,8 +55,13 @@ class DioClient {
           handler.next(options);
         },
         onError: (DioException error, handler) async {
-          if (error.response?.statusCode == 401) {
-            onUnauthorized?.call();
+          if (error.response?.statusCode == 401 && onUnauthorized != null) {
+            final now = DateTime.now();
+            final lastTime = _lastUnauthorizedTime;
+            if (lastTime == null || now.difference(lastTime) > _unauthorizedThrottle) {
+              _lastUnauthorizedTime = now;
+              onUnauthorized();
+            }
           }
           handler.next(error);
         },

@@ -4,26 +4,36 @@ import 'dart:async';
 class EventBus {
   EventBus._();
 
-  static final StreamController<dynamic> _streamController =
-      StreamController<dynamic>.broadcast();
+  static StreamController<dynamic>? _streamController;
+
+  static StreamController<dynamic> get _controller {
+    if (_streamController == null || _streamController!.isClosed) {
+      _streamController = StreamController<dynamic>.broadcast();
+    }
+    return _streamController!;
+  }
 
   /// 发布事件
   static void emit<T>(T event) {
-    if (!_streamController.isClosed) {
-      _streamController.add(event);
+    if (!_controller.isClosed) {
+      _controller.add(event);
     }
   }
 
   /// 订阅特定类型的事件流
   static Stream<T> on<T>() {
     if (T == dynamic) {
-      return _streamController.stream as Stream<T>;
+      return _controller.stream as Stream<T>;
     }
-    return _streamController.stream.where((event) => event is T).cast<T>();
+    return _controller.stream.where((event) => event is T).cast<T>();
   }
 
-  /// 销毁（通常用于单元测试清理）
+  /// 销毁（支持按需关闭，后续调用会自动安全重建，杜绝永久失效）
   static Future<void> destroy() async {
-    await _streamController.close();
+    final c = _streamController;
+    _streamController = null;
+    if (c != null && !c.isClosed) {
+      await c.close();
+    }
   }
 }

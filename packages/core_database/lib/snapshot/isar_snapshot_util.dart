@@ -42,11 +42,14 @@ class IsarSnapshotUtil {
 
   /// 从外部快照文件还原 Isar 数据库，并重新打开数据库就绪。
   ///
-  /// 还原流程：
-  /// 1. 安全关闭当前可能正在运行的同名数据库实例。
-  /// 2. 清理目标持久化目录中的旧 Isar 文件（`[dbName].isar` 及其锁文件/WAL文件）。
+  /// 具备工业级原子回滚与防毁库保障：
+  /// 1. 安全关闭当前可能正在运行的同名数据库实例，彻底释放物理文件锁。
+  /// 2. 将现有的旧数据库物理文件重命名为 `.rollback_tmp` 备份（绝不提前删除）。
   /// 3. 将 [sourceSnapshotFile] 复制并重命名到目标目录下的 `[dbName].isar`。
-  /// 4. 重新调用 [IsarDatabase.instance.init] 打开并校验加载 Schema。
+  /// 4. 尝试通过 [IsarDatabase.instance.init] 打开新库：
+  ///    - 若打开成功：物理清理 `.rollback_tmp` 临时文件，返回新实例。
+  ///    - 若打开失败（如快照已损坏/版本不兼容）：捕获异常，清理损坏文件，
+  ///      将 `.rollback_tmp` 还原回 `[dbName].isar` 并重新连接旧库，最后向上层 rethrow 异常。
   ///
   /// 参数：
   /// - [sourceSnapshotFile]: 来源快照文件。
@@ -63,7 +66,7 @@ class IsarSnapshotUtil {
       throw ArgumentError('Source snapshot file does not exist: ${sourceSnapshotFile.path}');
     }
 
-    // 1. 若当前实例开启，则先关闭
+    // 1. 若当前实例开启，则先完整关闭，释放操作系统文件锁句柄
     final existingInstance = Isar.getInstance(dbName);
     if (existingInstance != null && existingInstance.isOpen) {
       await existingInstance.close();
@@ -78,24 +81,65 @@ class IsarSnapshotUtil {
       await targetDir.create(recursive: true);
     }
 
-    // 3. 清理已有的同名数据库数据文件及锁文件
     final baseIsarFile = File('${targetDir.path}/$dbName.isar');
     final lockFile = File('${targetDir.path}/$dbName.isar.lock');
-    if (await baseIsarFile.exists()) {
-      await baseIsarFile.delete();
-    }
+    final rollbackFile = File('${targetDir.path}/$dbName.isar.rollback_tmp');
+
+    // 清理残留的锁文件与历史回滚文件
     if (await lockFile.exists()) {
       await lockFile.delete();
     }
+    if (await rollbackFile.exists()) {
+      await rollbackFile.delete();
+    }
 
-    // 4. 将快照文件复制为目标的数据库文件
-    await sourceSnapshotFile.copy(baseIsarFile.path);
+    final hadExistingDb = await baseIsarFile.exists();
 
-    // 5. 重新打开数据库
-    return await IsarDatabase.instance.init(
-      directory: directory,
-      schemas: schemas,
-      name: dbName,
-    );
+    // 3. 核心防毁库：将旧数据库重命名为回滚备份，绝不提前删除
+    if (hadExistingDb) {
+      await baseIsarFile.rename(rollbackFile.path);
+    }
+
+    try {
+      // 4. 将快照文件复制为目标的数据库文件
+      await sourceSnapshotFile.copy(baseIsarFile.path);
+
+      // 5. 重新打开并初始化数据库
+      final newIsar = await IsarDatabase.instance.init(
+        directory: directory,
+        schemas: schemas,
+        name: dbName,
+      );
+
+      // 验证成功，删除回滚备份
+      if (await rollbackFile.exists()) {
+        await rollbackFile.delete();
+      }
+
+      return newIsar;
+    } catch (e) {
+      // 6. 还原失败自动回滚：清理损坏的坏文件
+      if (await baseIsarFile.exists()) {
+        try {
+          await baseIsarFile.delete();
+        } catch (_) {}
+      }
+
+      // 将旧库重命名恢复
+      if (hadExistingDb && await rollbackFile.exists()) {
+        await rollbackFile.rename(baseIsarFile.path);
+        try {
+          // 尝试重新连回旧库
+          await IsarDatabase.instance.init(
+            directory: directory,
+            schemas: schemas,
+            name: dbName,
+          );
+        } catch (_) {}
+      }
+
+      // 向上层重新抛出真实异常
+      rethrow;
+    }
   }
 }

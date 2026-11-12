@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:archive/archive.dart';
+import 'package:archive/archive_io.dart';
 import '../extensions/num_extension.dart';
 import 'path_util.dart';
 
@@ -242,32 +242,55 @@ class FileUtil {
     }
   }
 
-  // === 6. 通用 Zip 压缩与解压能力 ===
+  // === 6. 通用 Zip 压缩与解压能力 (基于流式 I/O，杜绝内存 OOM) ===
 
-  /// 将离散文件集合打包为单一 .zip 文件
+  /// 将离散文件集合流式打包为单一 .zip 文件
   ///
   /// - [files]: 待打包文件列表
   /// - [targetZipPath]: 生成的目标 .zip 路径
-  /// - [pathInZipMap]: 可选的文件在压缩包内部的映射路径（如 `{file.path: 'sub/name.txt'}`）
+  /// - [pathInZipMap]: 可选的文件在压缩包内部的相对路径映射（如 `{file.path: 'attachments/images/1.jpg'}`）
   static Future<File> zipFiles({
     required List<File> files,
     required String targetZipPath,
     Map<String, String>? pathInZipMap,
   }) async {
-    final archive = Archive();
+    final targetFile = File(targetZipPath);
+    await createDirIfNotExists(targetFile.parent.path);
 
-    for (final file in files) {
-      if (!file.existsSync()) continue;
-      final bytes = await file.readAsBytes();
-      final nameInZip = pathInZipMap?[file.path] ?? file.uri.pathSegments.last;
-      archive.addFile(ArchiveFile(nameInZip, bytes.length, bytes));
+    // 采用独立系统临时文件，写完后原子重命名，防止写入中断损坏
+    final tempZipFile = File(
+      '${Directory.systemTemp.path}/zip_files_tmp_${DateTime.now().microsecondsSinceEpoch}.zip',
+    );
+    if (tempZipFile.existsSync()) {
+      await tempZipFile.delete();
     }
 
-    final zipData = ZipEncoder().encode(archive);
-    return await writeBytes(targetZipPath, Uint8List.fromList(zipData));
+    final encoder = ZipFileEncoder();
+    encoder.create(tempZipFile.path);
+
+    try {
+      for (final file in files) {
+        if (!file.existsSync()) continue;
+        final nameInZip = pathInZipMap?[file.path] ?? file.uri.pathSegments.last;
+        await encoder.addFile(file, nameInZip);
+      }
+      await encoder.close();
+
+      if (targetFile.existsSync()) {
+        await targetFile.delete();
+      }
+      return await tempZipFile.rename(targetZipPath);
+    } catch (e) {
+      if (tempZipFile.existsSync()) {
+        try {
+          await tempZipFile.delete();
+        } catch (_) {}
+      }
+      rethrow;
+    }
   }
 
-  /// 将整个文件夹目录递归打包压缩为单一 .zip 文件
+  /// 将整个文件夹目录流式递归打包压缩为单一 .zip 文件（不将全量数据读入内存，极低内存峰值）
   static Future<File> zipDirectory({
     required Directory sourceDir,
     required String targetZipPath,
@@ -276,24 +299,54 @@ class FileUtil {
       throw FileSystemException('待压缩的源目录不存在', sourceDir.path);
     }
 
-    final archive = Archive();
-    final entities =
-        await sourceDir.list(recursive: true, followLinks: false).toList();
-    final rootPath = sourceDir.path;
+    final targetFile = File(targetZipPath);
+    await createDirIfNotExists(targetFile.parent.path);
 
-    for (final entity in entities) {
-      if (entity is File) {
-        final relativePath = entity.path.substring(rootPath.length + 1);
-        final bytes = await entity.readAsBytes();
-        archive.addFile(ArchiveFile(relativePath, bytes.length, bytes));
-      }
+    // 若目标 zip 位于待压缩的 sourceDir 内部，为防止将正在写入的临时文件自身编入压缩包造成死循环或冲突，
+    // 将临时文件放置在系统临时目录中，写完后再原子重命名/移动到目标路径
+    final tempZipFile = File(
+      '${Directory.systemTemp.path}/zip_tmp_${DateTime.now().microsecondsSinceEpoch}.zip',
+    );
+    if (tempZipFile.existsSync()) {
+      await tempZipFile.delete();
     }
 
-    final zipData = ZipEncoder().encode(archive);
-    return await writeBytes(targetZipPath, Uint8List.fromList(zipData));
+    final encoder = ZipFileEncoder();
+    encoder.create(tempZipFile.path);
+
+    try {
+      final canonicalTarget = targetFile.existsSync()
+          ? targetFile.resolveSymbolicLinksSync()
+          : targetFile.path;
+      await encoder.addDirectory(
+        sourceDir,
+        includeDirName: false,
+        filter: (entity, progress) {
+          // 过滤掉目标 zip 文件自身，避免自我嵌套死循环
+          final entityPath = entity.path;
+          if (entityPath == targetZipPath || entityPath == canonicalTarget) {
+            return ZipFileOperation.skip;
+          }
+          return ZipFileOperation.include;
+        },
+      );
+      await encoder.close();
+
+      if (targetFile.existsSync()) {
+        await targetFile.delete();
+      }
+      return await tempZipFile.rename(targetZipPath);
+    } catch (e) {
+      if (tempZipFile.existsSync()) {
+        try {
+          await tempZipFile.delete();
+        } catch (_) {}
+      }
+      rethrow;
+    }
   }
 
-  /// 解压 .zip 文件到指定目录（内置防 Zip Slip 路径穿越注入攻击安全检查）
+  /// 解压 .zip 文件到指定目录（内置严格的 Zip Slip 路径穿越防御）
   static Future<Directory> unzipFile({
     required File zipFile,
     required String targetDirPath,
@@ -303,19 +356,31 @@ class FileUtil {
     }
 
     final targetDir = await createDirIfNotExists(targetDirPath);
+    final targetCanonical = targetDir.resolveSymbolicLinksSync();
+
     final bytes = await zipFile.readAsBytes();
     final archive = ZipDecoder().decodeBytes(bytes);
 
     for (final file in archive) {
       final filename = file.name;
-      // 防御 Zip Slip 路径穿越漏洞
-      if (filename.contains('..')) {
+      // 规范化路径分隔符防注入
+      final normalized = filename.replaceAll('\\', '/');
+      if (normalized.contains('../') || normalized.startsWith('/')) {
         continue;
       }
 
-      final outPath = '${targetDir.path}/$filename';
+      final outPath = '$targetCanonical/$normalized';
+      final outFile = File(outPath);
+
+      // 二次安全校验：确保目标文件绝对位于 targetDir 内部
+      final parentCanonical = outFile.parent.existsSync()
+          ? outFile.parent.resolveSymbolicLinksSync()
+          : outFile.parent.path;
+      if (!parentCanonical.startsWith(targetCanonical)) {
+        continue;
+      }
+
       if (file.isFile) {
-        final outFile = File(outPath);
         await createDirIfNotExists(outFile.parent.path);
         final data = file.content as List<int>;
         await outFile.writeAsBytes(data, flush: true);

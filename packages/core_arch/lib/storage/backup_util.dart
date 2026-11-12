@@ -94,7 +94,8 @@ class BackupUtil {
     String? appVersion,
     Map<String, dynamic>? extraMeta,
   }) async {
-    final tempWorkspace = Directory.systemTemp.createTempSync('backup_workspace_');
+    final tempWorkspace =
+        Directory.systemTemp.createTempSync('backup_meta_workspace_');
 
     try {
       final manifest = BackupManifest(
@@ -104,29 +105,38 @@ class BackupUtil {
         extraMeta: extraMeta ?? {},
       );
 
-      // 1. 写入 manifest.json
+      final filesToPack = <File>[];
+      final pathInZipMap = <String, String>{};
+
+      // 1. 写入 manifest.json 进元数据临时工作区
       final manifestFile = File('${tempWorkspace.path}/$_kManifestFileName');
       await manifestFile.writeAsString(jsonEncode(manifest.toJson()));
+      filesToPack.add(manifestFile);
+      pathInZipMap[manifestFile.path] = _kManifestFileName;
 
       // 2. 写入 kvData.json (若存在)
       if (kvData != null && kvData.isNotEmpty) {
         final kvFile = File('${tempWorkspace.path}/$_kKvDataFileName');
         await kvFile.writeAsString(jsonEncode(kvData));
+        filesToPack.add(kvFile);
+        pathInZipMap[kvFile.path] = _kKvDataFileName;
       }
 
-      // 3. 拷贝数据库快照 (若存在)
+      // 3. 收集数据库快照 (直接指向源文件，零冗余磁盘拷贝)
       if (databaseFile != null && databaseFile.existsSync()) {
-        await databaseFile.copy('${tempWorkspace.path}/$_kDatabaseSnapshotName');
+        filesToPack.add(databaseFile);
+        pathInZipMap[databaseFile.path] = _kDatabaseSnapshotName;
       }
 
-      // 4. 拷贝附件目录 (若存在)
+      // 4. 收集附件目录 (隔离各目录名称空间，解决同名覆盖 Bug，且零二次磁盘拷贝)
       if (attachmentDirs != null && attachmentDirs.isNotEmpty) {
-        final targetAttachments =
-            Directory('${tempWorkspace.path}/$_kAttachmentsDirName');
-        await targetAttachments.create(recursive: true);
-
         for (final dir in attachmentDirs) {
           if (!dir.existsSync()) continue;
+          final dirName = dir.uri.pathSegments
+              .where((s) => s.isNotEmpty)
+              .lastOrNull ??
+              'default';
+
           final entities =
               await dir.list(recursive: true, followLinks: false).toList();
           final rootLen = dir.path.length;
@@ -134,18 +144,21 @@ class BackupUtil {
           for (final entity in entities) {
             if (entity is File) {
               final relativePath = entity.path.substring(rootLen + 1);
-              final outTarget = File('${targetAttachments.path}/$relativePath');
-              await outTarget.parent.create(recursive: true);
-              await entity.copy(outTarget.path);
+              // 以 attachments/<dirName>/<relativePath> 格式隔离命名空间
+              final inZipPath =
+                  '$_kAttachmentsDirName/$dirName/$relativePath';
+              filesToPack.add(entity);
+              pathInZipMap[entity.path] = inZipPath;
             }
           }
         }
       }
 
-      // 5. 整体打包为目标 .bak (本质为 Zip)
-      final finalBakFile = await FileUtil.zipDirectory(
-        sourceDir: tempWorkspace,
+      // 5. 整体流式打包为目标 .bak (本质为 Zip)
+      final finalBakFile = await FileUtil.zipFiles(
+        files: filesToPack,
         targetZipPath: targetBackupFilePath,
+        pathInZipMap: pathInZipMap,
       );
 
       return Result.ok(finalBakFile);
@@ -158,7 +171,7 @@ class BackupUtil {
         ),
       );
     } finally {
-      // 清理临时打包工作区
+      // 清理临时元数据工作区
       try {
         await tempWorkspace.delete(recursive: true);
       } catch (_) {}

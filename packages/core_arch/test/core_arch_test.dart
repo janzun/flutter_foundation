@@ -103,9 +103,15 @@ void main() {
     test('createBackup and extractBackup completes full roundtrip', () async {
       final tempDir = Directory.systemTemp.createTempSync('backup_test_');
       final dbFakeFile = await FileUtil.writeString('${tempDir.path}/fake_db.bin', 'ISAR_DB_DATA');
-      final attachDir = Directory('${tempDir.path}/photos');
-      await attachDir.create();
-      await FileUtil.writeString('${attachDir.path}/photo1.jpg', 'PHOTO_BYTES');
+      
+      // 测试多目录结构与同名文件隔离
+      final photosDir = Directory('${tempDir.path}/photos');
+      await photosDir.create();
+      await FileUtil.writeString('${photosDir.path}/1.dat', 'PHOTO_1');
+
+      final audiosDir = Directory('${tempDir.path}/audios');
+      await audiosDir.create();
+      await FileUtil.writeString('${audiosDir.path}/1.dat', 'AUDIO_1'); // 同名文件
 
       final backupFilePath = '${tempDir.path}/my_backup.bak';
 
@@ -113,8 +119,8 @@ void main() {
       final createResult = await BackupUtil.createBackup(
         targetBackupFilePath: backupFilePath,
         databaseFile: dbFakeFile,
-        attachmentDirs: [attachDir],
-        kvData: {'theme': 'dark', 'version': 1},
+        attachmentDirs: [photosDir, audiosDir],
+        kvData: {'theme': 'dark', 'tags': ['tag1', 'tag2']},
         schemaVersion: 1,
         appVersion: '1.0.0',
       );
@@ -137,7 +143,15 @@ void main() {
       expect(extracted.databaseFile, isNotNull);
       expect(await extracted.databaseFile!.readAsString(), 'ISAR_DB_DATA');
       expect(extracted.attachmentsDir, isNotNull);
+
+      // 验证多目录同名文件互不覆盖且目录结构完整保留
+      final extractedPhoto = File('${extracted.attachmentsDir!.path}/photos/1.dat');
+      final extractedAudio = File('${extracted.attachmentsDir!.path}/audios/1.dat');
+      expect(await extractedPhoto.readAsString(), 'PHOTO_1');
+      expect(await extractedAudio.readAsString(), 'AUDIO_1');
+
       expect(extracted.kvData?['theme'], 'dark');
+      expect(extracted.kvData?['tags'], equals(['tag1', 'tag2']));
 
       await FileUtil.deleteDir(tempDir.path);
     });

@@ -23,12 +23,22 @@ abstract class BaseIsarDao<T> {
     });
   }
 
+  /// 在已有外部写事务中保存单个实体（不自建 writeTxn，防止嵌套事务崩溃）。
+  Future<Id> putInTxn(T entity) async {
+    return await collection.put(entity);
+  }
+
   /// 批量保存实体（插入或全量更新）。
   /// 返回写入后实体的主键 ID 列表。
   Future<List<Id>> putAll(List<T> entities) async {
     return await isar.writeTxn(() async {
       return await collection.putAll(entities);
     });
+  }
+
+  /// 在已有外部写事务中批量保存实体（不自建 writeTxn）。
+  Future<List<Id>> putAllInTxn(List<T> entities) async {
+    return await collection.putAll(entities);
   }
 
   /// 根据主键 ID 获取单个实体。找不到返回 null。
@@ -67,6 +77,11 @@ abstract class BaseIsarDao<T> {
     });
   }
 
+  /// 在已有外部写事务中根据主键 ID 删除单个实体（不自建 writeTxn）。
+  Future<bool> deleteInTxn(Id id) async {
+    return await collection.delete(id);
+  }
+
   /// 根据一组主键 ID 批量删除实体。
   /// 返回实际成功删除的记录数。
   Future<int> deleteAll(List<Id> ids) async {
@@ -75,11 +90,26 @@ abstract class BaseIsarDao<T> {
     });
   }
 
+  /// 在已有外部写事务中批量删除实体（不自建 writeTxn）。
+  Future<int> deleteAllInTxn(List<Id> ids) async {
+    return await collection.deleteAll(ids);
+  }
+
   /// 清空当前实体集合的所有数据。
   Future<void> clear() async {
     await isar.writeTxn(() async {
       await collection.clear();
     });
+  }
+
+  /// 在已有外部写事务中清空当前实体集合（不自建 writeTxn）。
+  Future<void> clearInTxn() async {
+    await collection.clear();
+  }
+
+  /// 响应式监听当前集合全量实体的变化，直接输出完整列表流（用于快速绑定 UI 列表）。
+  Stream<List<T>> watchAll({bool fireImmediately = true}) {
+    return collection.where().watch(fireImmediately: fireImmediately);
   }
 
   /// 响应式监听当前集合中任意对象增删改的通知流（不含具体数据负载，轻量防抖）。
