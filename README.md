@@ -16,6 +16,7 @@
 | **[`core_auth_google`](packages/core_auth_google)** | Google 渠道登录复用：专为 Android/Web 打造的渠道登录闭环，全量透传 `core_auth_base` 并默认原生 Google 授权 | `auth_google@1.0.0` | Android / iOS / Web 跨端 |
 | **[`core_pay_base`](packages/core_pay_base)** | 统一支付基础抽象：商品模型 `ProductInfo`、结果模型 `PayResult`、`Pay` 静态门面与 `BasePayService` 契约抽象（**禁止业务 App 直接依赖，仅供实现包继承**） | `pay_base@1.0.0` | 纯抽象契约 / 禁 App 直连 |
 | **[`core_pay_revenuecat`](packages/core_pay_revenuecat)** | 支付实现：RevenueCat Purchases SDK 适配器、StoreProduct 统一转换 | `pay_revenuecat@1.0.0` | 抹平 AppStore/GooglePlay |
+| **[`core_paywall`](packages/core_paywall)** | 变现转化套件：4套高转化海外模板、SKU合规联动、退出挽留与漏斗事件 | `paywall@1.0.0` | 零包间依赖 / 纯 UI 引擎 |
 | **[`core_analytics`](packages/core_analytics)** | 高性能埋点：统一网关协议 POST /v1/events、全自动路由停留统计、批量异步微任务队列 | `analytics@1.0.0` | 零第三方云 SDK 依赖 |
 | **[`core_camera`](packages/core_camera)** | 原生极速相机：Zero-Shutter-Lag 秒拍、4:3 画幅满帧、原子 AF/AE、零拷贝人脸实时分析流 | `camera@1.0.0` | Android CameraX + iOS AVFoundation |
 | **[`core_llm`](packages/core_llm)** | 统一大模型：Gemini 与 OpenAI Compatible 双适配器、流式输出、纪要提炼 SummaryHelper | `llm@1.0.0` | 纯净 Markdown / 多语言自适应 |

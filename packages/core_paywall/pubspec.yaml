@@ -1,0 +1,17 @@
+name: core_paywall
+description: "Zero-dependency, SKU-driven high-conversion Paywall UI and compliance toolkit for Flutter."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.7.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
