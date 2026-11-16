@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`pay_revenuecat@1.0.0`
+`pay_revenuecat@1.0.1`
 
 ## 📦 接入方式 (Installation)
 
@@ -16,7 +16,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_pay_revenuecat
-      ref: pay_revenuecat@1.0.0
+      ref: pay_revenuecat@1.0.1
 ```
 
 ## ⚙️ 必要配置 (Configuration)

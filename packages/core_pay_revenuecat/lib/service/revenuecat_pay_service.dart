@@ -58,6 +58,7 @@ class RevenueCatPayService extends BasePayService {
 
       // 1. 构建查询 common.products 过滤条件
       var query = supabaseClient
+          .schema('common')
           .from('products')
           .select()
           .eq('app_id', appId)
@@ -107,12 +108,39 @@ class RevenueCatPayService extends BasePayService {
         ));
       }
 
-      // 2. 在移动端向应用商店查询本地化货币格式价格进行补齐
+      // 2. 在移动端向应用商店查询本地化货币格式价格进行补齐（Android 需严格区分 subscription 与 nonSubscription）
       if ((Platform.isIOS || Platform.isAndroid) &&
           storeProductIds.isNotEmpty) {
         try {
-          final storeProducts =
-              await Purchases.getProducts(storeProductIds);
+          final subIds = products
+              .where((p) =>
+                  p.type == ProductType.subscription &&
+                  p.storeProductId.isNotEmpty)
+              .map((p) => p.storeProductId)
+              .toSet()
+              .toList();
+          final nonSubIds = products
+              .where((p) =>
+                  p.type != ProductType.subscription &&
+                  p.storeProductId.isNotEmpty)
+              .map((p) => p.storeProductId)
+              .toSet()
+              .toList();
+
+          final List<StoreProduct> storeProducts = [];
+          if (subIds.isNotEmpty) {
+            storeProducts.addAll(await Purchases.getProducts(
+              subIds,
+              productCategory: ProductCategory.subscription,
+            ));
+          }
+          if (nonSubIds.isNotEmpty) {
+            storeProducts.addAll(await Purchases.getProducts(
+              nonSubIds,
+              productCategory: ProductCategory.nonSubscription,
+            ));
+          }
+
           final storeMap = {for (var p in storeProducts) p.identifier: p};
 
           return products.map((p) {
@@ -145,7 +173,13 @@ class RevenueCatPayService extends BasePayService {
   @override
   Future<PayResult> purchase(ProductInfo product) async {
     try {
-      final storeProducts = await Purchases.getProducts([product.storeProductId]);
+      final category = product.type == ProductType.subscription
+          ? ProductCategory.subscription
+          : ProductCategory.nonSubscription;
+      final storeProducts = await Purchases.getProducts(
+        [product.storeProductId],
+        productCategory: category,
+      );
       if (storeProducts.isEmpty) {
         return PayResult.failed(
           'Product not available in Store: ${product.storeProductId}',
