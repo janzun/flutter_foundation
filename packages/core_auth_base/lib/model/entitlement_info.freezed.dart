@@ -256,7 +256,7 @@ class __$$EntitlementInfoImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class _$EntitlementInfoImpl implements _EntitlementInfo {
   const _$EntitlementInfoImpl({
     required this.id,

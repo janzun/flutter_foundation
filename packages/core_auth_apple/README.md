@@ -4,7 +4,7 @@ Apple 渠道专用认证实现包，封装 iOS / macOS 原生 Face ID / Touch ID
 
 ## 🏷️ 最新版本 Tag
 
-`auth_apple@1.0.0`
+`auth_apple@1.0.1`
 
 ## 📦 接入方式 (Installation)
 
@@ -16,7 +16,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_apple
-      ref: auth_apple@1.0.0
+      ref: auth_apple@1.0.1
 ```
 
 ## ⚙️ 必要配置 (Configuration)

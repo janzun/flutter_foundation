@@ -1,4 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'model/auth_result.dart';
 import 'model/user_data.dart';
 import 'service/base_auth_service.dart';
@@ -9,23 +8,13 @@ export 'model/auth_error_code.dart';
 export 'model/auth_result.dart';
 export 'service/base_auth_service.dart';
 
-/// 默认基础认证服务实现 (仅包含 Supabase 原生能力)
+/// 默认基础认证服务实现 (仅包含 Supabase 原生能力，如匿名与邮箱 OTP)
 class DefaultAuthService extends BaseAuthService {
   DefaultAuthService({
     required super.client,
     required super.appId,
   });
 }
-
-/// 基础顶层工厂函数 (提供通用兜底)
-BaseAuthService createAuthService({
-  required SupabaseClient client,
-  required String appId,
-}) =>
-    DefaultAuthService(
-      client: client,
-      appId: appId,
-    );
 
 /// 全局统一认证与用户中枢门面 (Auth)
 class Auth {
@@ -40,16 +29,15 @@ class Auth {
     return _instance!;
   }
 
-  /// 初始化全局认证单例 (自动调用当前渠道包的 createAuthService 工厂)
+  /// 初始化全局认证单例（需传入具体的渠道服务实现，如 AppleAuthService / GoogleAuthService）
   static void initialize({
-    required SupabaseClient client,
-    required String appId,
+    required BaseAuthService service,
   }) {
-    _instance = createAuthService(
-      client: client,
-      appId: appId,
-    );
+    _instance = service;
   }
+
+  /// 是否已初始化
+  static bool get isInitialized => _instance != null;
 
   /// 获取当前已登录用户的全量业务档案
   static UserData? get currentUser => _impl.currentUser;
@@ -64,7 +52,8 @@ class Auth {
   static Future<AuthResult<UserData>> signIn() => _impl.signIn();
 
   /// 匿名登录
-  static Future<AuthResult<UserData>> signInAnonymously() => _impl.signInAnonymously();
+  static Future<AuthResult<UserData>> signInAnonymously() =>
+      _impl.signInAnonymously();
 
   /// 发送邮箱 6 位动态验证码
   static Future<AuthResult<void>> sendEmailOtp({required String email}) =>
@@ -78,13 +67,16 @@ class Auth {
       _impl.signInWithEmailOtp(email: email, token: token);
 
   /// Apple 登录 (由对应渠道包实现)
-  static Future<AuthResult<UserData>> signInWithApple() => _impl.signInWithApple();
+  static Future<AuthResult<UserData>> signInWithApple() =>
+      _impl.signInWithApple();
 
   /// Google 登录 (由对应渠道包实现)
-  static Future<AuthResult<UserData>> signInWithGoogle() => _impl.signInWithGoogle();
+  static Future<AuthResult<UserData>> signInWithGoogle() =>
+      _impl.signInWithGoogle();
 
   /// 主动刷新当前用户档案与权益
-  static Future<AuthResult<UserData>> refreshProfile() => _impl.refreshProfile();
+  static Future<AuthResult<UserData>> refreshProfile() =>
+      _impl.refreshProfile();
 
   /// 退出登录
   static Future<void> signOut() => _impl.signOut();

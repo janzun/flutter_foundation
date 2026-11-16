@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`auth_base@1.0.0`
+`auth_base@1.0.1`
 
 ## 📦 接入方式 (Installation)
 
@@ -20,7 +20,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_base
-      ref: auth_base@1.0.0
+      ref: auth_base@1.0.1
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -38,10 +38,9 @@ await Supabase.initialize(url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_ANON_KEY');
 
 ```dart
 class Auth {
-  /// 初始化全局认证单例
+  /// 初始化全局认证单例 (需传入具体渠道实现，如 AppleAuthService / GoogleAuthService)
   static void initialize({
-    required SupabaseClient client,
-    required String appId,
+    required BaseAuthService service,
   });
 
   /// 获取当前已登录用户的内存档案快照 (未登录为 null)

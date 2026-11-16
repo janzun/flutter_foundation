@@ -17,7 +17,7 @@ class UserSyncService {
   /// 调用 PostgreSQL 函数一次性原子同步并返回 [UserData]
   Future<AuthResult<UserData>> fetchUserProfile() async {
     try {
-      final response = await client.rpc(
+      final response = await client.schema('common').rpc(
         'sync_user_profile',
         params: {
           'p_app_id': appId,

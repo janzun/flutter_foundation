@@ -14,14 +14,14 @@ _$EntitlementInfoImpl _$$EntitlementInfoImplFromJson(
   code: json['code'] as String,
   status: json['status'] as String? ?? 'active',
   tier: json['tier'] as String?,
-  billingCycle: json['billingCycle'] as String?,
+  billingCycle: json['billing_cycle'] as String?,
   balance: (json['balance'] as num?)?.toDouble() ?? 0.0,
   expireAt:
-      json['expireAt'] == null
+      json['expire_at'] == null
           ? null
-          : DateTime.parse(json['expireAt'] as String),
+          : DateTime.parse(json['expire_at'] as String),
   allowedPlatforms:
-      (json['allowedPlatforms'] as List<dynamic>?)
+      (json['allowed_platforms'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
       const <String>['android', 'ios', 'web', 'macos', 'windows'],
@@ -35,8 +35,8 @@ Map<String, dynamic> _$$EntitlementInfoImplToJson(
   'code': instance.code,
   'status': instance.status,
   'tier': instance.tier,
-  'billingCycle': instance.billingCycle,
+  'billing_cycle': instance.billingCycle,
   'balance': instance.balance,
-  'expireAt': instance.expireAt?.toIso8601String(),
-  'allowedPlatforms': instance.allowedPlatforms,
+  'expire_at': instance.expireAt?.toIso8601String(),
+  'allowed_platforms': instance.allowedPlatforms,
 };

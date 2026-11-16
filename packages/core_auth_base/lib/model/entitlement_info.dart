@@ -6,7 +6,7 @@ part 'entitlement_info.g.dart';
 /// 统一资产/权益描述模型
 @freezed
 class EntitlementInfo with _$EntitlementInfo {
-  @JsonSerializable(explicitToJson: true)
+  @JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
   const factory EntitlementInfo({
     /// 资产标识
     required String id,

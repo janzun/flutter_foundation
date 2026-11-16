@@ -4,7 +4,7 @@ Google 渠道专用认证实现包，封装 Android / Web 原生 Google Sign-In 
 
 ## 🏷️ 最新版本 Tag
 
-`auth_google@1.0.0`
+`auth_google@1.0.1`
 
 ## 📦 接入方式 (Installation)
 
@@ -16,7 +16,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_google
-      ref: auth_google@1.0.0
+      ref: auth_google@1.0.1
 ```
 
 ## ⚙️ 必要配置 (Configuration)
