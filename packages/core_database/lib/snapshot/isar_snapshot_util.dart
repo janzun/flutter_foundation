@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../engine/isar_database.dart';
 
 /// Isar 数据库快照与单库导入/导出工具。

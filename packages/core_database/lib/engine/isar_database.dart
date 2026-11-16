@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 /// Isar 数据库引擎生命周期管理类。
 ///

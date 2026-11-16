@@ -1,10 +1,10 @@
 # core_database
 
-基于 Isar 的高性能 NoSQL 实体数据库底座，提供代码优先（Code-First）、零手写 SQL、跨表原子事务与原子防毁库快照导入导出支持。
+基于 `isar_community` 的高性能 NoSQL 实体数据库底座，提供代码优先（Code-First）、零手写 SQL、跨表原子事务与原子防毁库快照导入导出支持。
 
 ## 🏷️ 最新版本 Tag
 
-`database@1.0.0`
+`database@2.0.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -14,16 +14,16 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_database
-      ref: database@1.0.0
+      ref: database@2.0.0
 
 dev_dependencies:
   build_runner: ^2.4.11
-  isar_generator: 3.1.0+1
+  isar_community_generator: ^3.4.1
 ```
 
 ## ⚙️ 必要配置 (Configuration)
 
-纯 Dart + Isar 引擎，无需任何敏感系统权限。
+纯 Dart + `isar_community` 引擎，无需任何敏感系统权限。
 
 ---
 

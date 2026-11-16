@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import '../engine/isar_database.dart';
 
 /// 通用实体持久化基类 DAO。
