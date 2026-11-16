@@ -1,20 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'model/pay_result.dart';
-import 'model/product_info.dart';
-import 'service/base_pay_service.dart';
+import '../model/pay_result.dart';
+import '../model/product_info.dart';
+import '../service/base_pay_service.dart';
 
 export 'model/product_info.dart';
 export 'model/entitlement_info.dart';
 export 'model/pay_result.dart';
 export 'service/base_pay_service.dart';
-
-/// 基础顶层工厂声明 (由各具体渠道包重写/导出)
-BasePayService createPayService({
-  required String appId,
-  required SupabaseClient supabaseClient,
-}) =>
-    throw UnimplementedError('createPayService() 未在当前渠道包中实现');
 
 /// 全局统一支付中枢门面 (Pay)
 class Pay {
@@ -35,25 +27,20 @@ class Pay {
     _impl.onEntitlementsChanged = callback;
   }
 
-  /// 初始化全局支付单例 (自动调用当前渠道包的 createPayService 工厂，或显式注入 [service])
+  /// 初始化全局支付单例（需传入具体的渠道实现 [service]）
   static Future<void> initialize({
-    required SupabaseClient client,
-    required String appId,
+    required BasePayService service,
     required String apiKey,
-    BasePayService? service,
   }) async {
-    _instance = service ??
-        createPayService(
-          appId: appId,
-          supabaseClient: client,
-        );
+    _instance?.dispose();
+    _instance = service;
     await _impl.initialize(apiKey: apiKey);
   }
 
   /// 是否已初始化
   static bool get isInitialized => _instance != null;
 
-  /// 获取商品列表 (支持按业务分组 group 过滤，如 'subscription', 'points')
+  /// 获取商品列表 (支持按业务分组 [group] 过滤，不传则返回当前平台全部上架商品)
   static Future<List<ProductInfo>> fetchProducts({String? group}) =>
       _impl.fetchProducts(group: group);
 
@@ -63,4 +50,10 @@ class Pay {
 
   /// 恢复购买记录
   static Future<PayResult> restorePurchases() => _impl.restorePurchases();
+
+  /// 释放支付服务资源
+  static void dispose() {
+    _instance?.dispose();
+    _instance = null;
+  }
 }

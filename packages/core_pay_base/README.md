@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`pay_base@1.0.0`
+`pay_base@1.1.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -20,7 +20,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_pay_base
-      ref: pay_base@1.0.0
+      ref: pay_base@1.1.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -39,18 +39,16 @@ class Pay {
   static VoidCallback? get onEntitlementsChanged;
   static set onEntitlementsChanged(VoidCallback? callback);
 
-  /// 初始化全局支付单例 (自动关联对应渠道包的实现)
+  /// 初始化全局支付单例 (需传入具体渠道包实现)
   static Future<void> initialize({
-    required SupabaseClient client,
-    required String appId,
+    required BasePayService service,
     required String apiKey,
-    BasePayService? service,
   });
 
   /// 是否已初始化就绪
   static bool get isInitialized;
 
-  /// 获取商品列表 (支持按业务分组 group 过滤，如 'subscription', 'points')
+  /// 获取商品列表 (支持按业务分组 group 过滤，不传则返回当前平台全部上架商品)
   static Future<List<ProductInfo>> fetchProducts({String? group});
 
   /// 唤起购买指定商品
@@ -58,6 +56,9 @@ class Pay {
 
   /// 恢复购买记录 (换机或重新安装)
   static Future<PayResult> restorePurchases();
+
+  /// 释放支付服务资源
+  static void dispose();
 }
 ```
 
