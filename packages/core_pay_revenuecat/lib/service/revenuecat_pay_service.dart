@@ -30,7 +30,7 @@ class RevenueCatPayService extends BasePayService {
       await Purchases.configure(configuration);
       await Purchases.setAttributes(<String, String>{
         r'$app_id': appId,
-        r'$db_schema': schema,
+        r'$debug': debug.toString(),
       });
 
       await _authSubscription?.cancel();
@@ -52,7 +52,7 @@ class RevenueCatPayService extends BasePayService {
             await Purchases.logIn(uid);
             await Purchases.setAttributes(<String, String>{
               r'$app_id': appId,
-              r'$db_schema': schema,
+              r'$debug': debug.toString(),
             });
           } catch (err, st) {
             debugPrint('RevenueCat Purchases.logIn($uid) failed: $err\n$st');
@@ -138,7 +138,7 @@ class RevenueCatPayService extends BasePayService {
         await Purchases.logIn(uid);
         await Purchases.setAttributes(<String, String>{
           r'$app_id': appId,
-          r'$db_schema': schema,
+          r'$debug': debug.toString(),
         });
       }
     }

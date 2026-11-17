@@ -14,15 +14,20 @@ function isUuid(val?: string | null): val is string {
 }
 
 /**
- * 路由判定：决定当前 Webhook 事件应交由测试服 (common_test) 还是正式服 (common) 处理
+ * 路由判定：决定当前 Webhook 事件应交由测试服处理器还是正式服处理器处理
  *
- * 1. 优先读取客户端通过 Purchases.setAttributes 注入的 `$db_schema` 属性（避免苹果审核 Sandbox 误路由）
- * 2. 若事件本身不携带属性（如 TRANSFER 迁移事件），则通过用户 UUID 反查其是否存在于 `common_test.users`
+ * 1. 直接读取客户端通过 Purchases.setAttributes 注入的 `$debug` 布尔标记（"true" -> 测试服，"false" -> 正式服），
+ *    无需在客户端或 Webhook 路由层暴露或硬编码数据库 Schema 名称；
+ * 2. 若事件本身不携带 subscriber_attributes（如部分 TRANSFER 迁移事件），则通过用户 UUID 反查其归属环境兜底。
  */
 async function isTestRoute(supabase: SupabaseClient, event: RevenueCatEvent): Promise<boolean> {
-  const attrSchema = event.subscriber_attributes?.["$db_schema"]?.value;
-  if (attrSchema === "common_test") return true;
-  if (attrSchema === "common") return false;
+  const debugAttr = (
+    event.subscriber_attributes?.["$debug"]?.value ??
+    event.subscriber_attributes?.["debug"]?.value
+  )?.toLowerCase();
+
+  if (debugAttr === "true") return true;
+  if (debugAttr === "false") return false;
 
   const candidateIds = [
     event.app_user_id,

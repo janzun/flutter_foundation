@@ -60,7 +60,7 @@ class RevenueCatPayService extends BasePayService {
     super.debug = kDebugMode,
   });
 
-  /// 初始化 RevenueCat，自动注入 $app_id 与 $db_schema Subscriber 属性并监听会话
+  /// 初始化 RevenueCat，自动注入 $app_id 与 $debug Subscriber 属性并监听会话
   @override
   Future<void> initialize({required String apiKey});
 
