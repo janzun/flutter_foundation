@@ -101,12 +101,13 @@ abstract class BaseAuthService {
     }
   }
 
-  /// 邮箱验证码 (OTP) 登录 / 免密注册 (全自动处理转正或老账号登录)
+  /// 邮箱验证码 (OTP) 登录 / 免密注册 (全自动处理转正或老账号登录及全量资产合并)
   Future<AuthResult<UserData>> signInWithEmailOtp({
     required String email,
     required String token,
   }) async {
     try {
+      final previousAnonUid = captureAnonymousUidIfAny();
       final res = await client.auth.verifyOTP(
         email: email.trim(),
         token: token.trim(),
@@ -115,7 +116,7 @@ abstract class BaseAuthService {
       if (res.user == null && client.auth.currentUser == null) {
         return AuthResult.failure(AuthErrorCode.otpInvalid, '邮箱验证码校验失败');
       }
-      return await syncAndEmit();
+      return await syncAndEmit(previousAnonymousUid: previousAnonUid);
     } catch (e, stack) {
       debugPrint('BaseAuthService.signInWithEmailOtp(email: $email) failed: $e\n$stack');
       return AuthResult.failure(AuthErrorCode.otpInvalid, '验证码错误或已过期');
@@ -204,10 +205,36 @@ abstract class BaseAuthService {
   // 3. 内部状态同步与辅助
   // =========================================================================
 
-  /// 同步数据库档案并触发 [userDataStream] 广播
+  /// 若当前处于匿名访客登录态，捕获并返回其 Supabase UID（供后续正式登录时迁移全量资产）
   @protected
-  Future<AuthResult<UserData>> syncAndEmit() async {
-    final result = await syncService.fetchUserProfile();
+  String? captureAnonymousUidIfAny() {
+    final currentAuthUser = client.auth.currentUser;
+    if (currentAuthUser != null && currentAuthUser.isAnonymous) {
+      return currentAuthUser.id;
+    }
+    return null;
+  }
+
+  /// 同步数据库档案并触发 [userDataStream] 广播
+  ///
+  /// 若传入了 [previousAnonymousUid] 且登录后的新账号 UID 与之不同，
+  /// 则在首次同步建档后自动调用 `migrate_anonymous_entitlements` 将匿名期持有的全量权益（会员、积分、次数等）合并至正式账号。
+  @protected
+  Future<AuthResult<UserData>> syncAndEmit({
+    String? previousAnonymousUid,
+  }) async {
+    var result = await syncService.fetchUserProfile();
+    final currentUid = client.auth.currentUser?.id;
+
+    if (result.isSuccess &&
+        previousAnonymousUid != null &&
+        previousAnonymousUid.isNotEmpty &&
+        currentUid != null &&
+        currentUid != previousAnonymousUid) {
+      await syncService.migrateAnonymousEntitlements(previousAnonymousUid);
+      result = await syncService.fetchUserProfile();
+    }
+
     if (result.isSuccess) {
       _currentUser = result.data;
       _userDataController.add(result.data);

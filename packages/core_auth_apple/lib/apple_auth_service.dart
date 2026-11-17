@@ -39,13 +39,15 @@ class AppleAuthService extends BaseAuthService {
         );
       }
 
+      final previousAnonUid = captureAnonymousUidIfAny();
+
       await client.auth.signInWithIdToken(
         provider: OAuthProvider.apple,
         idToken: credential.identityToken!,
         nonce: rawNonce,
       );
 
-      return await syncAndEmit();
+      return await syncAndEmit(previousAnonymousUid: previousAnonUid);
     } on SignInWithAppleAuthorizationException catch (e, stack) {
       debugPrint('AppleAuthService.signInWithApple canceled or failed: $e\n$stack');
       return AuthResult.failure(

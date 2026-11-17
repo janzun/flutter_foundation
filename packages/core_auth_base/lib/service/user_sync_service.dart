@@ -48,4 +48,21 @@ class UserSyncService {
       );
     }
   }
+
+  /// 将旧匿名访客账号 ([fromSupabaseUid]) 下已持有的全量权益（会员、积分、次数及任意自定义权益）安全合并至当前正式账号
+  Future<void> migrateAnonymousEntitlements(String fromSupabaseUid) async {
+    try {
+      await client.schema(schema).rpc(
+        'migrate_anonymous_entitlements',
+        params: {
+          'p_app_id': appId,
+          'p_from_supabase_uid': fromSupabaseUid,
+        },
+      );
+    } catch (e, stack) {
+      debugPrint(
+        'UserSyncService.migrateAnonymousEntitlements(from: $fromSupabaseUid) failed: $e\n$stack',
+      );
+    }
+  }
 }

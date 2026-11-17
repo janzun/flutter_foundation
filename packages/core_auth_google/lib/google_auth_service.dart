@@ -45,13 +45,15 @@ class GoogleAuthService extends BaseAuthService {
         );
       }
 
+      final previousAnonUid = captureAnonymousUidIfAny();
+
       await client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: googleAuth.idToken!,
         accessToken: googleAuth.accessToken,
       );
 
-      return await syncAndEmit();
+      return await syncAndEmit(previousAnonymousUid: previousAnonUid);
     } catch (e, stack) {
       debugPrint('GoogleAuthService.signInWithGoogle failed: $e\n$stack');
       return AuthResult.failure(
