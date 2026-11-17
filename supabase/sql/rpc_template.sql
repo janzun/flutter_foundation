@@ -75,16 +75,7 @@ BEGIN
 
     v_is_new_user := v_user_row.is_inserted;
 
-    IF v_is_new_user THEN
-        INSERT INTO {{SCHEMA}}.user_entitlements (user_id, app_id, type, code, status, tier)
-        VALUES (v_user_row.id, p_app_id::text, 'membership', 'free', 'active', 'free')
-        ON CONFLICT DO NOTHING;
-
-        INSERT INTO {{SCHEMA}}.user_entitlements (user_id, app_id, type, code, status, balance, total_earned, total_spent)
-        VALUES (v_user_row.id, p_app_id::text, 'points', 'standard_point', 'active', 20.00, 20.00, 0.00)
-        ON CONFLICT DO NOTHING;
-    END IF;
-
+    -- 查询用户在当前应用下的所有有效/在存资产（若无则聚合为空数组 []）
     SELECT COALESCE(
         jsonb_agg(
             jsonb_build_object(
