@@ -94,9 +94,19 @@ if (result.isSuccess) {
   print('支付失败: ${result.errorMessage}');
 }
 
-// 3. 恢复购买
+// 3. 恢复购买 (支持跨账号全量权益迁移：会员自动顺延、积分/次数自动累加合并)
 final restoreResult = await Pay.restorePurchases();
 if (restoreResult.isSuccess) {
   print('恢复购买成功');
 }
 ```
+
+---
+
+## 🔄 环境隔离与跨账号权益迁移机制
+
+1. **布尔 `$debug` 标记驱动环境路由**：
+   - 客户端初始化时通过 `Purchases.setAttributes` 自动向 RevenueCat 注入 `$app_id` 与 `$debug`（`"true"` / `"false"`），不暴露底层数据库 Schema 命名。
+   - 服务端 `revenuecat-webhook` 入口（`revenuecat_index.ts`）直接读取 `$debug` 布尔标记，将测试流量与正式流量严格分流至 `revenuecat_test.ts`（`common_test`）与 `revenuecat_prod.ts`（`common`），彻底解决 Apple 提审使用 Sandbox 环境测试正式包时的路由冲突。
+2. **全量资产合并与恢复购买 (`TRANSFER`)**：
+   - 当用户换机或切换账号点击“恢复购买”触发 RevenueCat `TRANSFER` 事件时，服务端 `transfer_entitlements` 会将该用户旧账号下持有的**全部有效权益（会员、积分、次数及任意自定义资产）**原子划转并累加合并至当前账号，旧账号权益自动置为失效并生成双边审计流水。

@@ -71,22 +71,15 @@ enum ProductType { subscription, consumable, nonConsumable }
 enum BillingCycle { oneOff, monthly, annual, lifetime }
 
 class ProductInfo {
-  final String code;                  // 业务商品唯一标识 (如 'vip_yearly')
-  final String appId;                 // 应用唯一标识 UUID
-  final String group;                 // 业务分组 ('subscription' | 'points' | 'quota')
+  final String code;                  // 业务商品唯一标识 (如 'vip_yearly_ios')
+  final String group;                 // 业务分组 ('subscription' | 'points' | 'quota' | 'default')
   final ProductType type;             // 商品类型 (订阅/消耗品/非消耗品)
   final BillingCycle billingCycle;    // 计费周期 (一次性/月/年/终身)
-  final String platform;              // 平台 ('ios' | 'android' | 'web')
-  final String store;                 // 商店 ('app_store' | 'google_play' | 'stripe')
   final String storeProductId;        // 商店后台 Product ID (如 'com.app.vip.yearly')
   final String? localizedPrice;       // 商店格式化本地化价格串 (如 '$9.99', '¥68.00')
-  final double? price;                // 商店本地货币微单位解析价格 (可选)
+  final double? price;                // 商店本地货币实际价格 (由商店 SDK 实时填充)
   final String? currency;             // 商店本地货币代码 (如 'USD', 'CNY')
   final Map<String, dynamic> storeParams; // 商店特定扩展参数
-  final String? rewardTier;           // 赠送权益等级 ('pro' | 'svip')
-  final int rewardDurationDays;       // 权益时长 (天)
-  final double rewardPoints;          // 赠送积分数
-  final Map<String, dynamic> rewardPerks; // 额外权益字典
 }
 ```
 

@@ -102,15 +102,12 @@ class Auth {
 ```dart
 class UserData {
   final String id;             // 用户在中台 common.users 的全局 UUID
-  final String appId;          // 所属应用 UUID
-  final String supabaseUid;    // Supabase auth.users.id
   final bool isAnonymous;      // 是否为匿名访客
-  final String authProvider;   // 认证渠道 ('anonymous' | 'apple' | 'google' | 'email')
   final bool isNewUser;        // 本次是否为新注册用户
   final String? email;         // 绑定邮箱
   final String displayName;    // 展示昵称
   final String? avatarUrl;     // 头像 URL
-  final List<EntitlementInfo> entitlements; // 用户拥有的有效权益资产列表
+  final List<EntitlementInfo> entitlements; // 用户当前拥有的有效权益资产列表 (默认无赠送，为空数组 [])
 
   // 便捷计算属性
   bool get isVip;              // 当前是否为有效 VIP 会员
@@ -121,11 +118,12 @@ class UserData {
 }
 
 class EntitlementInfo {
-  final String type;           // 权益类别 ('membership' | 'points' | 'quota')
-  final String code;           // 业务代码 ('vip' | 'standard_point' | 'ai_quota')
+  final String type;           // 权益类别 ('membership' | 'points' | 'quota' | 自定义)
+  final String code;           // 业务代码 ('vip' | 'standard_point' | 'ai_quota' | 自定义)
   final String status;         // 状态 ('active' | 'expired' | 'paused' | 'frozen')
-  final String? tier;          // 会员等级 ('free' | 'pro' | 'svip')
-  final double balance;        // 余额数值 (积分或额度)
+  final String? tier;          // 会员等级 ('pro' | 'svip')
+  final String? billingCycle;  // 计费周期 ('one_off' | 'monthly' | 'annual' | 'lifetime')
+  final double balance;        // 余额数值 (积分或次数额度)
   final DateTime? expireAt;    // 到期时间 (null 为永久有效)
 }
 ```
@@ -176,9 +174,9 @@ enum AuthErrorCode {
 2. **保障支付与权益落库的绝对确定性**：
    - 支付平台（如 RevenueCat）在发起购买与 Webhook 回调时，依赖确定性的 `appUserID`（即 Supabase 的 `supabase_uid`）。
    - 在支付动作前夕静默建档，使得发起支付、生成订单、Webhook 充值到 `common.user_entitlements` 整个链路拥有稳固的 UID 归属，杜绝“丢单”或“权益充到空白占位符”。
-3. **支持后续无缝“身份转正”**：
-   - 用户付费成为 VIP 后，在个人中心点击“通过 Apple / Google 登录”时，调用 `signInWithApple()`。
-   - 底座通过 Supabase 身份桥接，可自动将已包含 VIP 权益的匿名身份升级为正式账号，资产完美继承。
+3. **支持后续无缝“身份转正”与全量资产自动合并**：
+   - 用户在匿名状态下购买了会员、积分、次数或任意自定义权益后，在个人中心点击“Apple / Google / 邮箱 OTP 登录”时，SDK 会**自动捕获登录前的匿名 UID**；
+   - 切换为正式账号后，底座自动调用服务端 `migrate_anonymous_entitlements` 函数（服务端严格校验源账号 `is_anonymous = true`），将匿名期持有的**全部有效权益（会员自动顺延、积分/次数自动累加）**无缝合并到正式账号下，并在 `entitlement_transactions` 写入双边审计流水，实现零丢失平滑转正。
 
 ### 3. 收银台标准接入代码范式
 
