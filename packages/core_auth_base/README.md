@@ -154,3 +154,55 @@ enum AuthErrorCode {
   internalError,         // 内部服务异常
 }
 ```
+
+---
+
+## 💡 核心设计范式：延迟匿名登录 (Just-in-Time Provisioning)
+
+为了**避免产生海量无意义的“幽灵用户（Ghost Users）”**、节省 Supabase MAU 配额并保持中台转化率漏斗的纯净，本底座**严格推行“按需/延迟建档”原则**：
+
+### 1. 触发时机对比
+
+| 场景 | 推荐操作 | 严禁行为 |
+| :--- | :--- | :--- |
+| **App 冷启动** | 仅调用 `Auth.restoreSession()` 恢复已有会话 | ❌ **严禁**在无会话时自动无脑调用 `signInAnonymously()` |
+| **首屏与纯本地功能** | 用户作为本地纯访客正常使用，`currentUser == null` | ❌ **严禁**为了获取所谓“唯一设备标识”而提前向云端建档 |
+| **点击收银台付费** | **立即静默触发延迟建档**：若 `currentUser == null`，先执行 `await Auth.signInAnonymously()`，建档成功后再调起支付 | ❌ **严禁**在未向云端建档的情况下直接调用应用内支付 |
+| **触发云端多端同步** | 当用户主动开启云端备份/跨端数据同步前夕按需建档 | - |
+
+### 2. 为什么必须在“支付前夕”完成匿名建档？
+
+1. **零成本过滤跳失访客**：下载 App 试用几秒钟即卸载的用户（通常占 80%~90%）完全停留在纯本地，不会在 `auth.users` 和 `common.users` 中留下脏数据垃圾。
+2. **保障支付与权益落库的绝对确定性**：
+   - 支付平台（如 RevenueCat）在发起购买与 Webhook 回调时，依赖确定性的 `appUserID`（即 Supabase 的 `supabase_uid`）。
+   - 在支付动作前夕静默建档，使得发起支付、生成订单、Webhook 充值到 `common.user_entitlements` 整个链路拥有稳固的 UID 归属，杜绝“丢单”或“权益充到空白占位符”。
+3. **支持后续无缝“身份转正”**：
+   - 用户付费成为 VIP 后，在个人中心点击“通过 Apple / Google 登录”时，调用 `signInWithApple()`。
+   - 底座通过 Supabase 身份桥接，可自动将已包含 VIP 权益的匿名身份升级为正式账号，资产完美继承。
+
+### 3. 收银台标准接入代码范式
+
+```dart
+Future<void> onPayButtonClicked(BuildContext context, ProductInfo product) async {
+  // 1. 延迟建档检查：若尚未登录，在支付前夕静默创建匿名账号
+  if (Auth.currentUser == null) {
+    final authRes = await Auth.signInAnonymously();
+    if (authRes.isFailure) {
+      // 匿名建档失败通常为离线断网，提示用户重试
+      showErrorSnackBar('网络连接异常，请重试');
+      return;
+    }
+  }
+
+  // 2. 此时 Auth.currentUser 已具备确定的中台 UUID，安全调起支付
+  final payResult = await Pay.purchase(product);
+  
+  if (payResult.isSuccess) {
+    // 3. 购买成功，自动带退避重试拉取最新权益档案
+    await Auth.refreshProfileWithRetry();
+    showSuccessDialog('开通成功！');
+  } else if (!payResult.isCancelled) {
+    showErrorSnackBar(payResult.errorMessage ?? '支付失败');
+  }
+}
+```
