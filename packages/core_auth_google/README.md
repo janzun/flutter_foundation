@@ -4,7 +4,7 @@ Google 渠道专用认证实现包，封装 Android / Web 原生 Google Sign-In 
 
 ## 🏷️ 最新版本 Tag
 
-`auth_google@1.0.1`
+`auth_google@1.1.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -12,11 +12,11 @@ Google 渠道专用认证实现包，封装 Android / Web 原生 Google Sign-In 
 
 ```yaml
 dependencies:
-  core_auth_google:
+  core_auth:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_google
-      ref: auth_google@1.0.1
+      ref: auth_google@1.1.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -29,11 +29,13 @@ dependencies:
 ### 2. 初始化
 直接使用全局统一门面初始化（支持通过参数或 `--dart-define=GOOGLE_SERVER_CLIENT_ID=xxx` 传入 Web Client ID）：
 ```dart
-import 'package:core_auth_google/auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:core_auth/auth.dart';
 
 Auth.initialize(
   client: Supabase.instance.client,
   appId: 'YOUR_APP_UUID',
+  debug: kDebugMode, // 默认 kDebugMode：true 使用 common_test，false 使用 common
 );
 ```
 
@@ -51,6 +53,7 @@ class GoogleAuthService extends BaseAuthService {
     required super.client,
     required super.appId,
     this.serverClientId,
+    super.debug = kDebugMode,
   });
 
   /// 渠道默认登录方式 (直接触发原生 Google 登录)
@@ -65,7 +68,13 @@ class GoogleAuthService extends BaseAuthService {
 
 ### 全局一键调用示例
 ```dart
-// 直接调用渠道默认登录，或显式调用 Google 登录
+// 1. 冷启动静默恢复已有会话 (未登录返回 unauthorized，绝不隐式新建匿名账号)
+final sessionRes = await Auth.restoreSession();
+if (sessionRes.isSuccess) {
+  print('恢复已登录会话: ${sessionRes.data!.displayName}');
+}
+
+// 2. 触发 Google 授权登录 (直接调用渠道默认登录，或显式调用 Google 登录)
 final res = await Auth.signIn(); // 或 Auth.signInWithGoogle();
 
 if (res.isSuccess) {

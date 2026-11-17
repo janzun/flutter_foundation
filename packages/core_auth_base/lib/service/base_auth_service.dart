@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../model/auth_error_code.dart';
 import '../model/auth_result.dart';
+import '../model/entitlement_info.dart';
 import '../model/user_data.dart';
 import 'user_sync_service.dart';
 
@@ -17,6 +18,12 @@ abstract class BaseAuthService {
   /// 当前应用在 common.apps 中的唯一 UUID (非空)
   final String appId;
 
+  /// 是否使用测试环境 (`common_test` Schema)，默认取 [kDebugMode]
+  final bool debug;
+
+  /// 当前激活的数据库 Schema
+  String get schema => debug ? 'common_test' : 'common';
+
   /// 档案同步中枢 (非空)
   final UserSyncService syncService;
 
@@ -28,9 +35,11 @@ abstract class BaseAuthService {
   BaseAuthService({
     required this.client,
     required this.appId,
+    this.debug = kDebugMode,
   }) : syncService = UserSyncService(
           client: client,
           appId: appId,
+          debug: debug,
         ) {
     _authSubscription = client.auth.onAuthStateChange.listen(_onAuthStateChanged);
   }
@@ -52,11 +61,11 @@ abstract class BaseAuthService {
   // 1. 通用内置实现 (所有渠道包自动继承)
   // =========================================================================
 
-  /// 静默自动恢复登录态 (冷启动专属)
+  /// 静默恢复已有会话 (冷启动专属)
   ///
-  /// 若用户此前已登录且 Session 有效，则自动拉取并刷新业务档案；
+  /// 若用户此前已登录且本地 Session 有效，则自动拉取并刷新业务档案；
   /// 若用户尚未登录，则直接返回 [AuthErrorCode.unauthorized]，绝不隐式自动创建匿名账号。
-  Future<AuthResult<UserData>> autoLogin() async {
+  Future<AuthResult<UserData>> restoreSession() async {
     final currentSupabaseUser = client.auth.currentUser;
     if (currentSupabaseUser != null) {
       return await syncAndEmit();
@@ -121,6 +130,46 @@ abstract class BaseAuthService {
       return AuthResult.failure(AuthErrorCode.unauthorized, '当前未登录');
     }
     return await syncAndEmit();
+  }
+
+  /// 带退避重试的档案刷新（用于支付或恢复购买后等待 Webhook 异步落库）
+  ///
+  /// 默认依次等待 `800ms -> 1500ms -> 2500ms`，一旦检测到权益列表较刷新前发生变动即提前结束。
+  Future<AuthResult<UserData>> refreshProfileWithRetry({
+    List<Duration> delays = const [
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1500),
+      Duration(milliseconds: 2500),
+    ],
+  }) async {
+    final previousEntitlements = _currentUser?.entitlements;
+    AuthResult<UserData> latestResult = await refreshProfile();
+    if (!latestResult.isSuccess ||
+        _hasEntitlementsChanged(previousEntitlements, latestResult.data?.entitlements)) {
+      return latestResult;
+    }
+
+    for (final delay in delays) {
+      await Future<void>.delayed(delay);
+      latestResult = await refreshProfile();
+      if (!latestResult.isSuccess ||
+          _hasEntitlementsChanged(previousEntitlements, latestResult.data?.entitlements)) {
+        break;
+      }
+    }
+    return latestResult;
+  }
+
+  bool _hasEntitlementsChanged(
+    List<EntitlementInfo>? before,
+    List<EntitlementInfo>? after,
+  ) {
+    if (before == null || after == null) return before != after;
+    if (before.length != after.length) return true;
+    for (var i = 0; i < before.length; i++) {
+      if (before[i] != after[i]) return true;
+    }
+    return false;
   }
 
   /// 退出当前登录态

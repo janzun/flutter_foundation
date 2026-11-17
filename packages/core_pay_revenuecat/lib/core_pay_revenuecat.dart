@@ -17,19 +17,21 @@ class Pay {
     base.Pay.onEntitlementsChanged = callback;
   }
 
-  /// 初始化全局支付单例（默认自动创建 [RevenueCatPayService]）
+  /// 初始化全局支付单例（自动创建 [RevenueCatPayService]）
+  ///
+  /// [debug] 默认跟随 [kDebugMode]：`true` 使用 `common_test`，`false` 使用 `common`。
   static Future<void> initialize({
     required SupabaseClient client,
     required String appId,
     required String apiKey,
-    base.BasePayService? service,
+    bool debug = kDebugMode,
   }) =>
       base.Pay.initialize(
-        service: service ??
-            RevenueCatPayService(
-              appId: appId,
-              supabaseClient: client,
-            ),
+        service: RevenueCatPayService(
+          appId: appId,
+          supabaseClient: client,
+          debug: debug,
+        ),
         apiKey: apiKey,
       );
 

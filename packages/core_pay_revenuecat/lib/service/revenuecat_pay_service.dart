@@ -14,6 +14,7 @@ class RevenueCatPayService extends BasePayService {
   RevenueCatPayService({
     required super.appId,
     required super.supabaseClient,
+    super.debug = kDebugMode,
   });
 
   @override
@@ -27,14 +28,32 @@ class RevenueCatPayService extends BasePayService {
         configuration.appUserID = currentUserId;
       }
       await Purchases.configure(configuration);
+      await Purchases.setAttributes(<String, String>{
+        r'$app_id': appId,
+        r'$db_schema': schema,
+      });
 
       await _authSubscription?.cancel();
       _authSubscription =
           supabaseClient.auth.onAuthStateChange.listen((data) async {
+        if (data.event == AuthChangeEvent.signedOut) {
+          try {
+            if (!await Purchases.isAnonymous) {
+              await Purchases.logOut();
+            }
+          } catch (err, st) {
+            debugPrint('RevenueCat Purchases.logOut() failed: $err\n$st');
+          }
+          return;
+        }
         final uid = data.session?.user.id;
         if (uid != null && uid.isNotEmpty) {
           try {
             await Purchases.logIn(uid);
+            await Purchases.setAttributes(<String, String>{
+              r'$app_id': appId,
+              r'$db_schema': schema,
+            });
           } catch (err, st) {
             debugPrint('RevenueCat Purchases.logIn($uid) failed: $err\n$st');
           }
@@ -110,9 +129,26 @@ class RevenueCatPayService extends BasePayService {
     }
   }
 
+  /// 确保延迟匿名登录后，RevenueCat 的 appUserID 与当前 supabase_uid 严格一致
+  Future<void> _ensureRevenueCatUserSynced() async {
+    final uid = supabaseClient.auth.currentUser?.id;
+    if (uid != null && uid.isNotEmpty) {
+      final currentRcId = await Purchases.appUserID;
+      if (currentRcId != uid) {
+        await Purchases.logIn(uid);
+        await Purchases.setAttributes(<String, String>{
+          r'$app_id': appId,
+          r'$db_schema': schema,
+        });
+      }
+    }
+  }
+
   @override
   Future<PayResult> purchase(ProductInfo product) async {
     try {
+      await _ensureRevenueCatUserSynced();
+
       final category = product.type == ProductType.subscription
           ? ProductCategory.subscription
           : ProductCategory.nonSubscription;
@@ -159,6 +195,8 @@ class RevenueCatPayService extends BasePayService {
   @override
   Future<PayResult> restorePurchases() async {
     try {
+      await _ensureRevenueCatUserSynced();
+
       final customerInfo = await Purchases.restorePurchases();
       final hasActive = customerInfo.entitlements.active.isNotEmpty ||
           customerInfo.activeSubscriptions.isNotEmpty ||
@@ -170,12 +208,7 @@ class RevenueCatPayService extends BasePayService {
 
       onEntitlementsChanged?.call();
 
-      return PayResult.success(
-        rawDetails: <String, dynamic>{
-          'activeSubscriptions': customerInfo.activeSubscriptions,
-          'activeEntitlements': customerInfo.entitlements.active.keys.toList(),
-        },
-      );
+      return PayResult.success();
     } catch (e, stack) {
       debugPrint(
         'RevenueCatPayService.restorePurchases() failed. Error: $e\n$stack',

@@ -15,7 +15,7 @@ enum PayStatus {
   failed,
 }
 
-/// 支付行为结果封装
+/// 支付行为结果封装 (仅保留 App 端必要字段)
 @freezed
 class PayResult with _$PayResult {
   @JsonSerializable(explicitToJson: true)
@@ -23,7 +23,7 @@ class PayResult with _$PayResult {
     /// 状态枚举
     required PayStatus status,
 
-    /// 支付渠道交易号 (如有)
+    /// 支付渠道交易号 (如有，可用于埋点关联)
     String? channelTransactionId,
 
     /// 购买的商品唯一编码
@@ -31,21 +31,16 @@ class PayResult with _$PayResult {
 
     /// 错误信息 (失败时有效)
     String? errorMessage,
-
-    /// 原始返回数据上下文
-    @Default(<String, dynamic>{}) Map<String, dynamic> rawDetails,
   }) = _PayResult;
 
   factory PayResult.success({
     String? channelTransactionId,
     String? productCode,
-    Map<String, dynamic> rawDetails = const <String, dynamic>{},
   }) =>
       PayResult(
         status: PayStatus.success,
         channelTransactionId: channelTransactionId,
         productCode: productCode,
-        rawDetails: rawDetails,
       );
 
   factory PayResult.cancelled({String? productCode}) => PayResult(

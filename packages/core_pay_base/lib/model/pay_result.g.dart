@@ -12,9 +12,6 @@ _$PayResultImpl _$$PayResultImplFromJson(Map<String, dynamic> json) =>
       channelTransactionId: json['channelTransactionId'] as String?,
       productCode: json['productCode'] as String?,
       errorMessage: json['errorMessage'] as String?,
-      rawDetails:
-          json['rawDetails'] as Map<String, dynamic>? ??
-          const <String, dynamic>{},
     );
 
 Map<String, dynamic> _$$PayResultImplToJson(_$PayResultImpl instance) =>
@@ -23,7 +20,6 @@ Map<String, dynamic> _$$PayResultImplToJson(_$PayResultImpl instance) =>
       'channelTransactionId': instance.channelTransactionId,
       'productCode': instance.productCode,
       'errorMessage': instance.errorMessage,
-      'rawDetails': instance.rawDetails,
     };
 
 const _$PayStatusEnumMap = {

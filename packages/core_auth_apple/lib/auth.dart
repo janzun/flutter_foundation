@@ -1,4 +1,5 @@
 import 'package:core_auth_base/auth.dart' as base;
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'apple_auth_service.dart';
 
@@ -10,25 +11,27 @@ class Auth {
   Auth._();
 
   /// 初始化全局认证单例（默认绑定 [AppleAuthService]）
+  ///
+  /// [debug] 默认跟随 [kDebugMode]：`true` 使用 `common_test`，`false` 使用 `common`。
   static void initialize({
     required SupabaseClient client,
     required String appId,
-    base.BaseAuthService? service,
+    bool debug = kDebugMode,
   }) =>
-      base.Auth.initialize(
-        service: service ??
-            AppleAuthService(
-              client: client,
-              appId: appId,
-            ),
+      base.Auth.registerService(
+        AppleAuthService(
+          client: client,
+          appId: appId,
+          debug: debug,
+        ),
       );
 
   static bool get isInitialized => base.Auth.isInitialized;
   static base.UserData? get currentUser => base.Auth.currentUser;
   static Stream<base.UserData?> get userDataStream => base.Auth.userDataStream;
 
-  static Future<base.AuthResult<base.UserData>> autoLogin() =>
-      base.Auth.autoLogin();
+  static Future<base.AuthResult<base.UserData>> restoreSession() =>
+      base.Auth.restoreSession();
   static Future<base.AuthResult<base.UserData>> signIn() => base.Auth.signIn();
   static Future<base.AuthResult<base.UserData>> signInAnonymously() =>
       base.Auth.signInAnonymously();
@@ -45,5 +48,13 @@ class Auth {
       base.Auth.signInWithGoogle();
   static Future<base.AuthResult<base.UserData>> refreshProfile() =>
       base.Auth.refreshProfile();
+  static Future<base.AuthResult<base.UserData>> refreshProfileWithRetry({
+    List<Duration> delays = const [
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1500),
+      Duration(milliseconds: 2500),
+    ],
+  }) =>
+      base.Auth.refreshProfileWithRetry(delays: delays);
   static Future<void> signOut() => base.Auth.signOut();
 }

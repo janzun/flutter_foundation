@@ -11,8 +11,14 @@ abstract class BasePayService {
   /// 应用标识 UUID
   final String appId;
 
-  /// Supabase 客户端 (用于从 common.products 拉取商品目录)
+  /// Supabase 客户端 (用于从 common / common_test 拉取商品目录)
   final SupabaseClient supabaseClient;
+
+  /// 是否使用测试环境 (`common_test` Schema)，默认取 [kDebugMode]
+  final bool debug;
+
+  /// 当前激活的数据库 Schema
+  String get schema => debug ? 'common_test' : 'common';
 
   /// 资产可能发生变动的全局回调 (购买成功/恢复成功/渠道后台推送)
   VoidCallback? onEntitlementsChanged;
@@ -20,6 +26,7 @@ abstract class BasePayService {
   BasePayService({
     required this.appId,
     required this.supabaseClient,
+    this.debug = kDebugMode,
   });
 
   /// 初始化支付 SDK 环境与渠道凭证
@@ -36,11 +43,10 @@ abstract class BasePayService {
     try {
       final platform = currentPlatform;
       var query = supabaseClient
-          .schema('common')
+          .schema(schema)
           .from('products')
           .select(
-            'code, group, name, description, price, currency, '
-            'type, billing_cycle, store, store_product_id, store_params, sort_order',
+            'code, group, type, billing_cycle, store_product_id, store_params',
           )
           .eq('app_id', appId)
           .eq('platform', platform)
@@ -58,22 +64,14 @@ abstract class BasePayService {
         final map = Map<String, dynamic>.from(item as Map);
         products.add(ProductInfo(
           code: map['code'] as String,
-          appId: appId,
           group: map['group'] as String? ?? 'default',
-          name: map['name'] as String? ?? '',
-          description: map['description'] as String? ?? '',
-          price: (map['price'] as num?)?.toDouble() ?? 0.0,
-          currency: map['currency'] as String? ?? 'USD',
           type: _parseProductType(map['type'] as String? ?? 'subscription'),
           billingCycle:
               _parseBillingCycle(map['billing_cycle'] as String? ?? 'one_off'),
-          platform: platform,
-          store: map['store'] as String? ?? 'unknown',
           storeProductId: map['store_product_id'] as String? ?? '',
           storeParams: Map<String, dynamic>.from(
             map['store_params'] as Map? ?? <String, dynamic>{},
           ),
-          sortOrder: map['sort_order'] as int? ?? 0,
         ));
       }
 

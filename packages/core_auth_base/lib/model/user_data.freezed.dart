@@ -24,54 +24,27 @@ mixin _$UserData {
   /// common.users.id (业务系统统一 UUID)
   String get id => throw _privateConstructorUsedError;
 
-  /// common.apps.id (当前应用唯一标识)
-  @JsonKey(name: 'app_id')
-  String get appId => throw _privateConstructorUsedError;
-
-  /// auth.users.id (Supabase 底层认证 UID)
-  @JsonKey(name: 'supabase_uid')
-  String get supabaseUid => throw _privateConstructorUsedError;
-
   /// 是否为匿名访客
   @JsonKey(name: 'is_anonymous')
   bool get isAnonymous => throw _privateConstructorUsedError;
-
-  /// 认证提供商 ('anonymous' | 'apple' | 'google' | 'email')
-  @JsonKey(name: 'auth_provider')
-  String get authProvider => throw _privateConstructorUsedError;
 
   /// 标识当前登录是否为刚刚注册的新用户
   @JsonKey(name: 'is_new_user')
   bool get isNewUser => throw _privateConstructorUsedError;
 
-  /// 绑定邮箱
-  String? get email => throw _privateConstructorUsedError;
-
-  /// 绑定手机号
-  String? get phone => throw _privateConstructorUsedError;
-
   /// 用户展示昵称
   @JsonKey(name: 'display_name')
   String get displayName => throw _privateConstructorUsedError;
+
+  /// 绑定邮箱
+  String? get email => throw _privateConstructorUsedError;
 
   /// 用户头像 URL
   @JsonKey(name: 'avatar_url')
   String? get avatarUrl => throw _privateConstructorUsedError;
 
-  /// 用户风控级别 ('normal' | 'high' | 'banned')
-  @JsonKey(name: 'risk_level')
-  String get riskLevel => throw _privateConstructorUsedError;
-
   /// 用户全量资产与权益列表 (统一承载会员、积分、额度)
   List<EntitlementInfo> get entitlements => throw _privateConstructorUsedError;
-
-  /// 最近登录活跃时间
-  @JsonKey(name: 'last_login_at')
-  DateTime? get lastLoginAt => throw _privateConstructorUsedError;
-
-  /// 账号注册时间
-  @JsonKey(name: 'created_at')
-  DateTime get createdAt => throw _privateConstructorUsedError;
 
   /// Serializes this UserData to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -90,19 +63,12 @@ abstract class $UserDataCopyWith<$Res> {
   @useResult
   $Res call({
     String id,
-    @JsonKey(name: 'app_id') String appId,
-    @JsonKey(name: 'supabase_uid') String supabaseUid,
     @JsonKey(name: 'is_anonymous') bool isAnonymous,
-    @JsonKey(name: 'auth_provider') String authProvider,
     @JsonKey(name: 'is_new_user') bool isNewUser,
-    String? email,
-    String? phone,
     @JsonKey(name: 'display_name') String displayName,
+    String? email,
     @JsonKey(name: 'avatar_url') String? avatarUrl,
-    @JsonKey(name: 'risk_level') String riskLevel,
     List<EntitlementInfo> entitlements,
-    @JsonKey(name: 'last_login_at') DateTime? lastLoginAt,
-    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -122,19 +88,12 @@ class _$UserDataCopyWithImpl<$Res, $Val extends UserData>
   @override
   $Res call({
     Object? id = null,
-    Object? appId = null,
-    Object? supabaseUid = null,
     Object? isAnonymous = null,
-    Object? authProvider = null,
     Object? isNewUser = null,
-    Object? email = freezed,
-    Object? phone = freezed,
     Object? displayName = null,
+    Object? email = freezed,
     Object? avatarUrl = freezed,
-    Object? riskLevel = null,
     Object? entitlements = null,
-    Object? lastLoginAt = freezed,
-    Object? createdAt = null,
   }) {
     return _then(
       _value.copyWith(
@@ -143,71 +102,36 @@ class _$UserDataCopyWithImpl<$Res, $Val extends UserData>
                     ? _value.id
                     : id // ignore: cast_nullable_to_non_nullable
                         as String,
-            appId:
-                null == appId
-                    ? _value.appId
-                    : appId // ignore: cast_nullable_to_non_nullable
-                        as String,
-            supabaseUid:
-                null == supabaseUid
-                    ? _value.supabaseUid
-                    : supabaseUid // ignore: cast_nullable_to_non_nullable
-                        as String,
             isAnonymous:
                 null == isAnonymous
                     ? _value.isAnonymous
                     : isAnonymous // ignore: cast_nullable_to_non_nullable
                         as bool,
-            authProvider:
-                null == authProvider
-                    ? _value.authProvider
-                    : authProvider // ignore: cast_nullable_to_non_nullable
-                        as String,
             isNewUser:
                 null == isNewUser
                     ? _value.isNewUser
                     : isNewUser // ignore: cast_nullable_to_non_nullable
                         as bool,
-            email:
-                freezed == email
-                    ? _value.email
-                    : email // ignore: cast_nullable_to_non_nullable
-                        as String?,
-            phone:
-                freezed == phone
-                    ? _value.phone
-                    : phone // ignore: cast_nullable_to_non_nullable
-                        as String?,
             displayName:
                 null == displayName
                     ? _value.displayName
                     : displayName // ignore: cast_nullable_to_non_nullable
                         as String,
+            email:
+                freezed == email
+                    ? _value.email
+                    : email // ignore: cast_nullable_to_non_nullable
+                        as String?,
             avatarUrl:
                 freezed == avatarUrl
                     ? _value.avatarUrl
                     : avatarUrl // ignore: cast_nullable_to_non_nullable
                         as String?,
-            riskLevel:
-                null == riskLevel
-                    ? _value.riskLevel
-                    : riskLevel // ignore: cast_nullable_to_non_nullable
-                        as String,
             entitlements:
                 null == entitlements
                     ? _value.entitlements
                     : entitlements // ignore: cast_nullable_to_non_nullable
                         as List<EntitlementInfo>,
-            lastLoginAt:
-                freezed == lastLoginAt
-                    ? _value.lastLoginAt
-                    : lastLoginAt // ignore: cast_nullable_to_non_nullable
-                        as DateTime?,
-            createdAt:
-                null == createdAt
-                    ? _value.createdAt
-                    : createdAt // ignore: cast_nullable_to_non_nullable
-                        as DateTime,
           )
           as $Val,
     );
@@ -225,19 +149,12 @@ abstract class _$$UserDataImplCopyWith<$Res>
   @useResult
   $Res call({
     String id,
-    @JsonKey(name: 'app_id') String appId,
-    @JsonKey(name: 'supabase_uid') String supabaseUid,
     @JsonKey(name: 'is_anonymous') bool isAnonymous,
-    @JsonKey(name: 'auth_provider') String authProvider,
     @JsonKey(name: 'is_new_user') bool isNewUser,
-    String? email,
-    String? phone,
     @JsonKey(name: 'display_name') String displayName,
+    String? email,
     @JsonKey(name: 'avatar_url') String? avatarUrl,
-    @JsonKey(name: 'risk_level') String riskLevel,
     List<EntitlementInfo> entitlements,
-    @JsonKey(name: 'last_login_at') DateTime? lastLoginAt,
-    @JsonKey(name: 'created_at') DateTime createdAt,
   });
 }
 
@@ -256,19 +173,12 @@ class __$$UserDataImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
-    Object? appId = null,
-    Object? supabaseUid = null,
     Object? isAnonymous = null,
-    Object? authProvider = null,
     Object? isNewUser = null,
-    Object? email = freezed,
-    Object? phone = freezed,
     Object? displayName = null,
+    Object? email = freezed,
     Object? avatarUrl = freezed,
-    Object? riskLevel = null,
     Object? entitlements = null,
-    Object? lastLoginAt = freezed,
-    Object? createdAt = null,
   }) {
     return _then(
       _$UserDataImpl(
@@ -277,71 +187,36 @@ class __$$UserDataImplCopyWithImpl<$Res>
                 ? _value.id
                 : id // ignore: cast_nullable_to_non_nullable
                     as String,
-        appId:
-            null == appId
-                ? _value.appId
-                : appId // ignore: cast_nullable_to_non_nullable
-                    as String,
-        supabaseUid:
-            null == supabaseUid
-                ? _value.supabaseUid
-                : supabaseUid // ignore: cast_nullable_to_non_nullable
-                    as String,
         isAnonymous:
             null == isAnonymous
                 ? _value.isAnonymous
                 : isAnonymous // ignore: cast_nullable_to_non_nullable
                     as bool,
-        authProvider:
-            null == authProvider
-                ? _value.authProvider
-                : authProvider // ignore: cast_nullable_to_non_nullable
-                    as String,
         isNewUser:
             null == isNewUser
                 ? _value.isNewUser
                 : isNewUser // ignore: cast_nullable_to_non_nullable
                     as bool,
-        email:
-            freezed == email
-                ? _value.email
-                : email // ignore: cast_nullable_to_non_nullable
-                    as String?,
-        phone:
-            freezed == phone
-                ? _value.phone
-                : phone // ignore: cast_nullable_to_non_nullable
-                    as String?,
         displayName:
             null == displayName
                 ? _value.displayName
                 : displayName // ignore: cast_nullable_to_non_nullable
                     as String,
+        email:
+            freezed == email
+                ? _value.email
+                : email // ignore: cast_nullable_to_non_nullable
+                    as String?,
         avatarUrl:
             freezed == avatarUrl
                 ? _value.avatarUrl
                 : avatarUrl // ignore: cast_nullable_to_non_nullable
                     as String?,
-        riskLevel:
-            null == riskLevel
-                ? _value.riskLevel
-                : riskLevel // ignore: cast_nullable_to_non_nullable
-                    as String,
         entitlements:
             null == entitlements
                 ? _value._entitlements
                 : entitlements // ignore: cast_nullable_to_non_nullable
                     as List<EntitlementInfo>,
-        lastLoginAt:
-            freezed == lastLoginAt
-                ? _value.lastLoginAt
-                : lastLoginAt // ignore: cast_nullable_to_non_nullable
-                    as DateTime?,
-        createdAt:
-            null == createdAt
-                ? _value.createdAt
-                : createdAt // ignore: cast_nullable_to_non_nullable
-                    as DateTime,
       ),
     );
   }
@@ -353,19 +228,12 @@ class __$$UserDataImplCopyWithImpl<$Res>
 class _$UserDataImpl extends _UserData {
   const _$UserDataImpl({
     required this.id,
-    @JsonKey(name: 'app_id') required this.appId,
-    @JsonKey(name: 'supabase_uid') required this.supabaseUid,
     @JsonKey(name: 'is_anonymous') this.isAnonymous = false,
-    @JsonKey(name: 'auth_provider') this.authProvider = 'email',
     @JsonKey(name: 'is_new_user') this.isNewUser = false,
-    this.email,
-    this.phone,
     @JsonKey(name: 'display_name') required this.displayName,
+    this.email,
     @JsonKey(name: 'avatar_url') this.avatarUrl,
-    @JsonKey(name: 'risk_level') this.riskLevel = 'normal',
     final List<EntitlementInfo> entitlements = const <EntitlementInfo>[],
-    @JsonKey(name: 'last_login_at') this.lastLoginAt,
-    @JsonKey(name: 'created_at') required this.createdAt,
   }) : _entitlements = entitlements,
        super._();
 
@@ -376,53 +244,29 @@ class _$UserDataImpl extends _UserData {
   @override
   final String id;
 
-  /// common.apps.id (当前应用唯一标识)
-  @override
-  @JsonKey(name: 'app_id')
-  final String appId;
-
-  /// auth.users.id (Supabase 底层认证 UID)
-  @override
-  @JsonKey(name: 'supabase_uid')
-  final String supabaseUid;
-
   /// 是否为匿名访客
   @override
   @JsonKey(name: 'is_anonymous')
   final bool isAnonymous;
-
-  /// 认证提供商 ('anonymous' | 'apple' | 'google' | 'email')
-  @override
-  @JsonKey(name: 'auth_provider')
-  final String authProvider;
 
   /// 标识当前登录是否为刚刚注册的新用户
   @override
   @JsonKey(name: 'is_new_user')
   final bool isNewUser;
 
-  /// 绑定邮箱
-  @override
-  final String? email;
-
-  /// 绑定手机号
-  @override
-  final String? phone;
-
   /// 用户展示昵称
   @override
   @JsonKey(name: 'display_name')
   final String displayName;
 
+  /// 绑定邮箱
+  @override
+  final String? email;
+
   /// 用户头像 URL
   @override
   @JsonKey(name: 'avatar_url')
   final String? avatarUrl;
-
-  /// 用户风控级别 ('normal' | 'high' | 'banned')
-  @override
-  @JsonKey(name: 'risk_level')
-  final String riskLevel;
 
   /// 用户全量资产与权益列表 (统一承载会员、积分、额度)
   final List<EntitlementInfo> _entitlements;
@@ -436,19 +280,9 @@ class _$UserDataImpl extends _UserData {
     return EqualUnmodifiableListView(_entitlements);
   }
 
-  /// 最近登录活跃时间
-  @override
-  @JsonKey(name: 'last_login_at')
-  final DateTime? lastLoginAt;
-
-  /// 账号注册时间
-  @override
-  @JsonKey(name: 'created_at')
-  final DateTime createdAt;
-
   @override
   String toString() {
-    return 'UserData(id: $id, appId: $appId, supabaseUid: $supabaseUid, isAnonymous: $isAnonymous, authProvider: $authProvider, isNewUser: $isNewUser, email: $email, phone: $phone, displayName: $displayName, avatarUrl: $avatarUrl, riskLevel: $riskLevel, entitlements: $entitlements, lastLoginAt: $lastLoginAt, createdAt: $createdAt)';
+    return 'UserData(id: $id, isAnonymous: $isAnonymous, isNewUser: $isNewUser, displayName: $displayName, email: $email, avatarUrl: $avatarUrl, entitlements: $entitlements)';
   }
 
   @override
@@ -457,31 +291,19 @@ class _$UserDataImpl extends _UserData {
         (other.runtimeType == runtimeType &&
             other is _$UserDataImpl &&
             (identical(other.id, id) || other.id == id) &&
-            (identical(other.appId, appId) || other.appId == appId) &&
-            (identical(other.supabaseUid, supabaseUid) ||
-                other.supabaseUid == supabaseUid) &&
             (identical(other.isAnonymous, isAnonymous) ||
                 other.isAnonymous == isAnonymous) &&
-            (identical(other.authProvider, authProvider) ||
-                other.authProvider == authProvider) &&
             (identical(other.isNewUser, isNewUser) ||
                 other.isNewUser == isNewUser) &&
-            (identical(other.email, email) || other.email == email) &&
-            (identical(other.phone, phone) || other.phone == phone) &&
             (identical(other.displayName, displayName) ||
                 other.displayName == displayName) &&
+            (identical(other.email, email) || other.email == email) &&
             (identical(other.avatarUrl, avatarUrl) ||
                 other.avatarUrl == avatarUrl) &&
-            (identical(other.riskLevel, riskLevel) ||
-                other.riskLevel == riskLevel) &&
             const DeepCollectionEquality().equals(
               other._entitlements,
               _entitlements,
-            ) &&
-            (identical(other.lastLoginAt, lastLoginAt) ||
-                other.lastLoginAt == lastLoginAt) &&
-            (identical(other.createdAt, createdAt) ||
-                other.createdAt == createdAt));
+            ));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -489,19 +311,12 @@ class _$UserDataImpl extends _UserData {
   int get hashCode => Object.hash(
     runtimeType,
     id,
-    appId,
-    supabaseUid,
     isAnonymous,
-    authProvider,
     isNewUser,
-    email,
-    phone,
     displayName,
+    email,
     avatarUrl,
-    riskLevel,
     const DeepCollectionEquality().hash(_entitlements),
-    lastLoginAt,
-    createdAt,
   );
 
   /// Create a copy of UserData
@@ -521,19 +336,12 @@ class _$UserDataImpl extends _UserData {
 abstract class _UserData extends UserData {
   const factory _UserData({
     required final String id,
-    @JsonKey(name: 'app_id') required final String appId,
-    @JsonKey(name: 'supabase_uid') required final String supabaseUid,
     @JsonKey(name: 'is_anonymous') final bool isAnonymous,
-    @JsonKey(name: 'auth_provider') final String authProvider,
     @JsonKey(name: 'is_new_user') final bool isNewUser,
-    final String? email,
-    final String? phone,
     @JsonKey(name: 'display_name') required final String displayName,
+    final String? email,
     @JsonKey(name: 'avatar_url') final String? avatarUrl,
-    @JsonKey(name: 'risk_level') final String riskLevel,
     final List<EntitlementInfo> entitlements,
-    @JsonKey(name: 'last_login_at') final DateTime? lastLoginAt,
-    @JsonKey(name: 'created_at') required final DateTime createdAt,
   }) = _$UserDataImpl;
   const _UserData._() : super._();
 
@@ -544,67 +352,33 @@ abstract class _UserData extends UserData {
   @override
   String get id;
 
-  /// common.apps.id (当前应用唯一标识)
-  @override
-  @JsonKey(name: 'app_id')
-  String get appId;
-
-  /// auth.users.id (Supabase 底层认证 UID)
-  @override
-  @JsonKey(name: 'supabase_uid')
-  String get supabaseUid;
-
   /// 是否为匿名访客
   @override
   @JsonKey(name: 'is_anonymous')
   bool get isAnonymous;
-
-  /// 认证提供商 ('anonymous' | 'apple' | 'google' | 'email')
-  @override
-  @JsonKey(name: 'auth_provider')
-  String get authProvider;
 
   /// 标识当前登录是否为刚刚注册的新用户
   @override
   @JsonKey(name: 'is_new_user')
   bool get isNewUser;
 
-  /// 绑定邮箱
-  @override
-  String? get email;
-
-  /// 绑定手机号
-  @override
-  String? get phone;
-
   /// 用户展示昵称
   @override
   @JsonKey(name: 'display_name')
   String get displayName;
+
+  /// 绑定邮箱
+  @override
+  String? get email;
 
   /// 用户头像 URL
   @override
   @JsonKey(name: 'avatar_url')
   String? get avatarUrl;
 
-  /// 用户风控级别 ('normal' | 'high' | 'banned')
-  @override
-  @JsonKey(name: 'risk_level')
-  String get riskLevel;
-
   /// 用户全量资产与权益列表 (统一承载会员、积分、额度)
   @override
   List<EntitlementInfo> get entitlements;
-
-  /// 最近登录活跃时间
-  @override
-  @JsonKey(name: 'last_login_at')
-  DateTime? get lastLoginAt;
-
-  /// 账号注册时间
-  @override
-  @JsonKey(name: 'created_at')
-  DateTime get createdAt;
 
   /// Create a copy of UserData
   /// with the given fields replaced by the non-null parameter values.

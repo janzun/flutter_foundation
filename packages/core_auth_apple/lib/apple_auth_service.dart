@@ -10,6 +10,7 @@ class AppleAuthService extends BaseAuthService {
   AppleAuthService({
     required super.client,
     required super.appId,
+    super.debug = kDebugMode,
   });
 
   /// 渠道默认登录方式即为 Sign in with Apple

@@ -1,6 +1,6 @@
 name: core_auth
 description: "Apple flavor authentication package supporting native Sign-In with Apple."
-version: 1.0.1
+version: 1.1.0
 publish_to: 'none'
 
 environment:

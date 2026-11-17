@@ -4,20 +4,24 @@ import '../model/auth_error_code.dart';
 import '../model/auth_result.dart';
 import '../model/user_data.dart';
 
-/// 负责通过 PostgreSQL RPC 与中台 `common` 表安全同步与聚合业务用户档案
+/// 负责通过 PostgreSQL RPC 与中台 `common` / `common_test` 表安全同步与聚合业务用户档案
 class UserSyncService {
   final SupabaseClient client;
   final String appId;
+  final bool debug;
 
   const UserSyncService({
     required this.client,
     required this.appId,
+    this.debug = kDebugMode,
   });
+
+  String get schema => debug ? 'common_test' : 'common';
 
   /// 调用 PostgreSQL 函数一次性原子同步并返回 [UserData]
   Future<AuthResult<UserData>> fetchUserProfile() async {
     try {
-      final response = await client.schema('common').rpc(
+      final response = await client.schema(schema).rpc(
         'sync_user_profile',
         params: {
           'p_app_id': appId,

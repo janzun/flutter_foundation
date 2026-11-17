@@ -4,7 +4,7 @@ Apple 渠道专用认证实现包，封装 iOS / macOS 原生 Face ID / Touch ID
 
 ## 🏷️ 最新版本 Tag
 
-`auth_apple@1.0.1`
+`auth_apple@1.1.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -12,11 +12,11 @@ Apple 渠道专用认证实现包，封装 iOS / macOS 原生 Face ID / Touch ID
 
 ```yaml
 dependencies:
-  core_auth_apple:
+  core_auth:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_apple
-      ref: auth_apple@1.0.1
+      ref: auth_apple@1.1.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -27,11 +27,13 @@ dependencies:
 ### 2. 初始化
 直接使用全局统一门面初始化，内部自动绑定 Apple 原生认证服务：
 ```dart
-import 'package:core_auth_apple/auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:core_auth/auth.dart';
 
 Auth.initialize(
   client: Supabase.instance.client,
   appId: 'YOUR_APP_UUID',
+  debug: kDebugMode, // 默认 kDebugMode：true 使用 common_test，false 使用 common
 );
 ```
 
@@ -46,6 +48,7 @@ class AppleAuthService extends BaseAuthService {
   AppleAuthService({
     required super.client,
     required super.appId,
+    super.debug = kDebugMode,
   });
 
   /// 渠道默认登录方式 (直接触发原生 Sign in with Apple)
@@ -60,7 +63,13 @@ class AppleAuthService extends BaseAuthService {
 
 ### 全局一键调用示例
 ```dart
-// 直接调用渠道默认登录，或显式调用 Apple 登录
+// 1. 冷启动静默恢复已有会话 (未登录返回 unauthorized，绝不隐式新建匿名账号)
+final sessionRes = await Auth.restoreSession();
+if (sessionRes.isSuccess) {
+  print('恢复已登录会话: ${sessionRes.data!.displayName}');
+}
+
+// 2. 触发 Apple 授权登录 (直接调用渠道默认登录，或显式调用 Apple 登录)
 final res = await Auth.signIn(); // 或 Auth.signInWithApple();
 
 if (res.isSuccess) {

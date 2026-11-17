@@ -11,6 +11,7 @@ class GoogleAuthService extends BaseAuthService {
   GoogleAuthService({
     required super.client,
     required super.appId,
+    super.debug = kDebugMode,
     this.serverClientId,
   });
 

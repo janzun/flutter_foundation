@@ -22,24 +22,16 @@ void main() {
       expect(res.data, isNull);
     });
 
-    test('UserData deserialization from server JSON with entitlements', () {
+    test('UserData deserialization from minimal server JSON with entitlements', () {
       final mockJson = {
         'id': '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-        'app_id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        'supabase_uid': '9f3537f2-9244-4ddf-b45a-28a6b6b09962',
         'is_anonymous': false,
-        'auth_provider': 'apple',
         'is_new_user': true,
         'email': 'alex@example.com',
-        'phone': null,
         'display_name': 'alex',
         'avatar_url': null,
-        'risk_level': 'normal',
-        'last_login_at': '2026-08-31T06:50:00.000Z',
-        'created_at': '2026-08-31T06:50:00.000Z',
         'entitlements': [
           {
-            'id': 'ent_1',
             'type': 'membership',
             'code': 'pro',
             'status': 'active',
@@ -48,17 +40,14 @@ void main() {
             'balance': 0.0,
             'expire_at':
                 DateTime.now().add(const Duration(days: 30)).toIso8601String(),
-            'allowed_platforms': ['android', 'ios'],
           },
           {
-            'id': 'ent_2',
             'type': 'points',
             'code': 'standard_point',
             'status': 'active',
             'balance': 100.0,
           },
           {
-            'id': 'ent_3',
             'type': 'quota',
             'code': 'ai_summary',
             'status': 'active',
@@ -81,13 +70,9 @@ void main() {
     test('UserData handles empty entitlements safely', () {
       final mockJson = {
         'id': '7c9e6679-7425-40de-944b-e07fc1f90ae7',
-        'app_id': 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-        'supabase_uid': '9f3537f2-9244-4ddf-b45a-28a6b6b09962',
         'is_anonymous': true,
-        'auth_provider': 'anonymous',
         'is_new_user': false,
         'display_name': '访客',
-        'created_at': '2026-08-31T06:50:00.000Z',
         'entitlements': [],
       };
 

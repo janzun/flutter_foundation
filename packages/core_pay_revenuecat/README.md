@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`pay_revenuecat@1.1.0`
+`pay_revenuecat@1.2.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -16,7 +16,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_pay_revenuecat
-      ref: pay_revenuecat@1.1.0
+      ref: pay_revenuecat@1.2.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -24,21 +24,25 @@ dependencies:
 ### 1. RevenueCat 后台配置
 - 在 RevenueCat Dashboard 创建 Project，并绑定 iOS App Store Shared Secret 与 Android Google Play Service Account。
 - 录入 Entitlement 标识（如 `pro`）与 Offerings 商品。
+- 配置 Webhook 指向 Supabase Edge Function：`https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`。
 
 ### 2. 初始化
 直接调用全局统一 `Pay.initialize`，内部自动调用工厂构造 `RevenueCatPayService`：
 ```dart
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:core_pay_revenuecat/core_pay_revenuecat.dart';
 
 await Pay.initialize(
   client: Supabase.instance.client,
   appId: 'YOUR_APP_UUID',
   apiKey: Platform.isIOS ? 'appl_api_key' : 'goog_api_key',
+  debug: kDebugMode, // 默认 kDebugMode：true 使用 common_test，false 使用 common
 );
 
-// 监听资产变化（购买成功/恢复成功后自动同步刷新用户权益）
+// 监听资产变化（购买成功/恢复成功后自动带退避重试刷新用户权益）
 Pay.onEntitlementsChanged = () {
-  Auth.refreshProfile();
+  Auth.refreshProfileWithRetry();
 };
 ```
 
@@ -50,22 +54,21 @@ Pay.onEntitlementsChanged = () {
 
 ```dart
 class RevenueCatPayService extends BasePayService {
-  final SupabaseClient supabaseClient;
-
   RevenueCatPayService({
     required super.appId,
-    required this.supabaseClient,
+    required super.supabaseClient,
+    super.debug = kDebugMode,
   });
 
-  /// 初始化 RevenueCat，自动绑定当前 Supabase User ID 并监听会话与权益变更
+  /// 初始化 RevenueCat，自动注入 $app_id 与 $db_schema Subscriber 属性并监听会话
   @override
   Future<void> initialize({required String apiKey});
 
-  /// 从 common.products 拉取商品，并自动向应用商店查询本地化价格 (localizedPrice) 进行补齐
+  /// 从 common/common_test.products 拉取商品，并向应用商店查询 localizedPrice 进行补齐
   @override
   Future<List<ProductInfo>> fetchProducts({String? group});
 
-  /// 唤起原生购买弹窗 (支持订阅与消耗型商品)
+  /// 唤起原生购买弹窗 (自动确保延迟匿名与 uid 对齐，防丢单)
   @override
   Future<PayResult> purchase(ProductInfo product);
 
@@ -93,4 +96,7 @@ if (result.isSuccess) {
 
 // 3. 恢复购买
 final restoreResult = await Pay.restorePurchases();
+if (restoreResult.isSuccess) {
+  print('恢复购买成功');
+}
 ```

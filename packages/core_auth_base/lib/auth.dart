@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'model/auth_result.dart';
 import 'model/user_data.dart';
 import 'service/base_auth_service.dart';
@@ -8,12 +10,16 @@ export 'model/auth_error_code.dart';
 export 'model/auth_result.dart';
 export 'service/base_auth_service.dart';
 
-/// 默认基础认证服务实现 (仅包含 Supabase 原生能力，如匿名与邮箱 OTP)
+/// 默认基础认证服务实现 (仅包含 Supabase 原生能力，默认登录为匿名登录)
 class DefaultAuthService extends BaseAuthService {
   DefaultAuthService({
     required super.client,
     required super.appId,
+    super.debug = kDebugMode,
   });
+
+  @override
+  Future<AuthResult<UserData>> signIn() => signInAnonymously();
 }
 
 /// 全局统一认证与用户中枢门面 (Auth)
@@ -29,10 +35,23 @@ class Auth {
     return _instance!;
   }
 
-  /// 初始化全局认证单例（需传入具体的渠道服务实现，如 AppleAuthService / GoogleAuthService）
+  /// 初始化全局认证单例（默认自动注入 [DefaultAuthService]）
+  ///
+  /// [debug] 默认跟随 [kDebugMode]：`true` 使用 `common_test`，`false` 使用 `common`。
   static void initialize({
-    required BaseAuthService service,
+    required SupabaseClient client,
+    required String appId,
+    bool debug = kDebugMode,
   }) {
+    _instance = DefaultAuthService(
+      client: client,
+      appId: appId,
+      debug: debug,
+    );
+  }
+
+  /// 供渠道包（如 core_auth_apple / core_auth_google）内部注入自定义服务实例
+  static void registerService(BaseAuthService service) {
     _instance = service;
   }
 
@@ -45,10 +64,11 @@ class Auth {
   /// 用户业务数据响应式流
   static Stream<UserData?> get userDataStream => _impl.userDataStream;
 
-  /// 冷启动静默自动登录
-  static Future<AuthResult<UserData>> autoLogin() => _impl.autoLogin();
+  /// 冷启动静默恢复已有会话（绝不隐式创建新账号）
+  static Future<AuthResult<UserData>> restoreSession() =>
+      _impl.restoreSession();
 
-  /// 渠道默认一键登录 (根据当前依赖的渠道包执行对应的原生登录，如 Apple / Google)
+  /// 渠道默认一键登录 (基础包默认走匿名登录；渠道包对应 Apple / Google 登录)
   static Future<AuthResult<UserData>> signIn() => _impl.signIn();
 
   /// 匿名登录
@@ -77,6 +97,16 @@ class Auth {
   /// 主动刷新当前用户档案与权益
   static Future<AuthResult<UserData>> refreshProfile() =>
       _impl.refreshProfile();
+
+  /// 带退避重试的档案刷新（用于支付或恢复购买后等待 Webhook 异步落库）
+  static Future<AuthResult<UserData>> refreshProfileWithRetry({
+    List<Duration> delays = const [
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1500),
+      Duration(milliseconds: 2500),
+    ],
+  }) =>
+      _impl.refreshProfileWithRetry(delays: delays);
 
   /// 退出登录
   static Future<void> signOut() => _impl.signOut();

@@ -24,7 +24,7 @@ mixin _$PayResult {
   /// 状态枚举
   PayStatus get status => throw _privateConstructorUsedError;
 
-  /// 支付渠道交易号 (如有)
+  /// 支付渠道交易号 (如有，可用于埋点关联)
   String? get channelTransactionId => throw _privateConstructorUsedError;
 
   /// 购买的商品唯一编码
@@ -32,9 +32,6 @@ mixin _$PayResult {
 
   /// 错误信息 (失败时有效)
   String? get errorMessage => throw _privateConstructorUsedError;
-
-  /// 原始返回数据上下文
-  Map<String, dynamic> get rawDetails => throw _privateConstructorUsedError;
 
   /// Serializes this PayResult to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -56,7 +53,6 @@ abstract class $PayResultCopyWith<$Res> {
     String? channelTransactionId,
     String? productCode,
     String? errorMessage,
-    Map<String, dynamic> rawDetails,
   });
 }
 
@@ -79,7 +75,6 @@ class _$PayResultCopyWithImpl<$Res, $Val extends PayResult>
     Object? channelTransactionId = freezed,
     Object? productCode = freezed,
     Object? errorMessage = freezed,
-    Object? rawDetails = null,
   }) {
     return _then(
       _value.copyWith(
@@ -103,11 +98,6 @@ class _$PayResultCopyWithImpl<$Res, $Val extends PayResult>
                     ? _value.errorMessage
                     : errorMessage // ignore: cast_nullable_to_non_nullable
                         as String?,
-            rawDetails:
-                null == rawDetails
-                    ? _value.rawDetails
-                    : rawDetails // ignore: cast_nullable_to_non_nullable
-                        as Map<String, dynamic>,
           )
           as $Val,
     );
@@ -128,7 +118,6 @@ abstract class _$$PayResultImplCopyWith<$Res>
     String? channelTransactionId,
     String? productCode,
     String? errorMessage,
-    Map<String, dynamic> rawDetails,
   });
 }
 
@@ -150,7 +139,6 @@ class __$$PayResultImplCopyWithImpl<$Res>
     Object? channelTransactionId = freezed,
     Object? productCode = freezed,
     Object? errorMessage = freezed,
-    Object? rawDetails = null,
   }) {
     return _then(
       _$PayResultImpl(
@@ -174,11 +162,6 @@ class __$$PayResultImplCopyWithImpl<$Res>
                 ? _value.errorMessage
                 : errorMessage // ignore: cast_nullable_to_non_nullable
                     as String?,
-        rawDetails:
-            null == rawDetails
-                ? _value._rawDetails
-                : rawDetails // ignore: cast_nullable_to_non_nullable
-                    as Map<String, dynamic>,
       ),
     );
   }
@@ -193,8 +176,7 @@ class _$PayResultImpl implements _PayResult {
     this.channelTransactionId,
     this.productCode,
     this.errorMessage,
-    final Map<String, dynamic> rawDetails = const <String, dynamic>{},
-  }) : _rawDetails = rawDetails;
+  });
 
   factory _$PayResultImpl.fromJson(Map<String, dynamic> json) =>
       _$$PayResultImplFromJson(json);
@@ -203,7 +185,7 @@ class _$PayResultImpl implements _PayResult {
   @override
   final PayStatus status;
 
-  /// 支付渠道交易号 (如有)
+  /// 支付渠道交易号 (如有，可用于埋点关联)
   @override
   final String? channelTransactionId;
 
@@ -215,21 +197,9 @@ class _$PayResultImpl implements _PayResult {
   @override
   final String? errorMessage;
 
-  /// 原始返回数据上下文
-  final Map<String, dynamic> _rawDetails;
-
-  /// 原始返回数据上下文
-  @override
-  @JsonKey()
-  Map<String, dynamic> get rawDetails {
-    if (_rawDetails is EqualUnmodifiableMapView) return _rawDetails;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_rawDetails);
-  }
-
   @override
   String toString() {
-    return 'PayResult(status: $status, channelTransactionId: $channelTransactionId, productCode: $productCode, errorMessage: $errorMessage, rawDetails: $rawDetails)';
+    return 'PayResult(status: $status, channelTransactionId: $channelTransactionId, productCode: $productCode, errorMessage: $errorMessage)';
   }
 
   @override
@@ -243,11 +213,7 @@ class _$PayResultImpl implements _PayResult {
             (identical(other.productCode, productCode) ||
                 other.productCode == productCode) &&
             (identical(other.errorMessage, errorMessage) ||
-                other.errorMessage == errorMessage) &&
-            const DeepCollectionEquality().equals(
-              other._rawDetails,
-              _rawDetails,
-            ));
+                other.errorMessage == errorMessage));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -258,7 +224,6 @@ class _$PayResultImpl implements _PayResult {
     channelTransactionId,
     productCode,
     errorMessage,
-    const DeepCollectionEquality().hash(_rawDetails),
   );
 
   /// Create a copy of PayResult
@@ -281,7 +246,6 @@ abstract class _PayResult implements PayResult {
     final String? channelTransactionId,
     final String? productCode,
     final String? errorMessage,
-    final Map<String, dynamic> rawDetails,
   }) = _$PayResultImpl;
 
   factory _PayResult.fromJson(Map<String, dynamic> json) =
@@ -291,7 +255,7 @@ abstract class _PayResult implements PayResult {
   @override
   PayStatus get status;
 
-  /// 支付渠道交易号 (如有)
+  /// 支付渠道交易号 (如有，可用于埋点关联)
   @override
   String? get channelTransactionId;
 
@@ -302,10 +266,6 @@ abstract class _PayResult implements PayResult {
   /// 错误信息 (失败时有效)
   @override
   String? get errorMessage;
-
-  /// 原始返回数据上下文
-  @override
-  Map<String, dynamic> get rawDetails;
 
   /// Create a copy of PayResult
   /// with the given fields replaced by the non-null parameter values.

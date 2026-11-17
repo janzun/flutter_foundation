@@ -4,7 +4,7 @@
 
 ## 🏷️ 最新版本 Tag
 
-`auth_base@1.0.1`
+`auth_base@1.1.0`
 
 ## 📦 接入方式 (Installation)
 
@@ -20,7 +20,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_auth_base
-      ref: auth_base@1.0.1
+      ref: auth_base@1.1.0
 ```
 
 ## ⚙️ 必要配置 (Configuration)
@@ -38,10 +38,17 @@ await Supabase.initialize(url: 'YOUR_SUPABASE_URL', anonKey: 'YOUR_ANON_KEY');
 
 ```dart
 class Auth {
-  /// 初始化全局认证单例 (需传入具体渠道实现，如 AppleAuthService / GoogleAuthService)
+  /// 初始化全局认证单例 (默认自动注入 DefaultAuthService)
+  ///
+  /// [debug] 默认跟随 [kDebugMode]：`true` 时读写 common_test 测试架构，`false` 时读写 common 正式架构。
   static void initialize({
-    required BaseAuthService service,
+    required SupabaseClient client,
+    required String appId,
+    bool debug = kDebugMode,
   });
+
+  /// 供渠道包注入自定义服务实现 (如 AppleAuthService / GoogleAuthService)
+  static void registerService(BaseAuthService service);
 
   /// 获取当前已登录用户的内存档案快照 (未登录为 null)
   static UserData? get currentUser;
@@ -49,13 +56,13 @@ class Auth {
   /// 用户业务档案响应式广播流 (登录/登出/刷新全自动推送)
   static Stream<UserData?> get userDataStream;
 
-  /// 冷启动静默自动恢复登录态 (若未登录直接返回 unauthorized，绝不隐式创建匿名账号)
-  static Future<AuthResult<UserData>> autoLogin();
+  /// 冷启动静默恢复已有会话 (若未登录直接返回 unauthorized，绝不隐式创建匿名账号)
+  static Future<AuthResult<UserData>> restoreSession();
 
-  /// 渠道默认一键登录 (具体行为由当前引入的渠道包覆盖，如 Apple/Google 原生登录)
+  /// 渠道默认一键登录 (基础包默认走匿名登录；渠道包对应 Apple/Google 原生登录)
   static Future<AuthResult<UserData>> signIn();
 
-  /// 匿名登录 (快速体验)
+  /// 匿名登录 (延迟建档，仅在触发付费或云端能力时调用)
   static Future<AuthResult<UserData>> signInAnonymously();
 
   /// 发送邮箱 6 位 OTP 动态验证码
@@ -76,7 +83,16 @@ class Auth {
   /// 主动刷新当前用户业务档案与权益
   static Future<AuthResult<UserData>> refreshProfile();
 
-  /// 退出登录
+  /// 带退避重试的档案刷新 (用于支付或恢复购买后等待 Webhook 异步落库)
+  static Future<AuthResult<UserData>> refreshProfileWithRetry({
+    List<Duration> delays = const [
+      Duration(milliseconds: 800),
+      Duration(milliseconds: 1500),
+      Duration(milliseconds: 2500),
+    ],
+  });
+
+  /// 退出登录 (自动重置内部状态与广播)
   static Future<void> signOut();
 }
 ```
@@ -85,37 +101,32 @@ class Auth {
 
 ```dart
 class UserData {
-  final String id;             // common.users.id
-  final String appId;          // common.apps.id
-  final String supabaseUid;    // auth.users.id
-  final bool isAnonymous;      // 是否为匿名用户
-  final String authProvider;   // 'anonymous' | 'apple' | 'google' | 'email'
-  final bool isNewUser;        // 是否为本次刚刚注册的新用户
-  final String? email;
-  final String? phone;
-  final String displayName;
-  final String? avatarUrl;
-  final String riskLevel;      // 'normal' | 'high' | 'banned'
-  final List<EntitlementInfo> entitlements; // 会员/积分/额度资产列表
-  final DateTime? lastLoginAt;
-  final DateTime createdAt;
+  final String id;             // 用户在中台 common.users 的全局 UUID
+  final String appId;          // 所属应用 UUID
+  final String supabaseUid;    // Supabase auth.users.id
+  final bool isAnonymous;      // 是否为匿名访客
+  final String authProvider;   // 认证渠道 ('anonymous' | 'apple' | 'google' | 'email')
+  final bool isNewUser;        // 本次是否为新注册用户
+  final String? email;         // 绑定邮箱
+  final String displayName;    // 展示昵称
+  final String? avatarUrl;     // 头像 URL
+  final List<EntitlementInfo> entitlements; // 用户拥有的有效权益资产列表
 
   // 便捷计算属性
-  bool get isVip;              // 当前是否为有效 VIP
+  bool get isVip;              // 当前是否为有效 VIP 会员
   String? get vipTier;         // 当前有效 VIP 等级 ('pro' / 'svip')
-  DateTime? get vipExpireAt;   // VIP 到期截止时间
+  DateTime? get vipExpireAt;   // VIP 到期截止时间 (null 为永久)
   int get pointsBalance;       // 当前标准积分余额
   double getBalance(String code, {String type = 'quota'}); // 获取指定资产额度
 }
 
 class EntitlementInfo {
-  final String id;
-  final String code;           // 权益标识 (如 'membership', 'standard_point')
-  final String type;           // 'membership' | 'points' | 'quota'
-  final String tier;           // 'free' | 'pro' | 'svip'
-  final double balance;        // 余额数值
-  final String status;         // 'active' | 'expired' | 'revoked'
-  final DateTime? expireAt;
+  final String type;           // 权益类别 ('membership' | 'points' | 'quota')
+  final String code;           // 业务代码 ('vip' | 'standard_point' | 'ai_quota')
+  final String status;         // 状态 ('active' | 'expired' | 'paused' | 'frozen')
+  final String? tier;          // 会员等级 ('free' | 'pro' | 'svip')
+  final double balance;        // 余额数值 (积分或额度)
+  final DateTime? expireAt;    // 到期时间 (null 为永久有效)
 }
 ```
 

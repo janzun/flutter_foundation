@@ -4,7 +4,6 @@ import '../model/product_info.dart';
 import '../service/base_pay_service.dart';
 
 export 'model/product_info.dart';
-export 'model/entitlement_info.dart';
 export 'model/pay_result.dart';
 export 'service/base_pay_service.dart';
 

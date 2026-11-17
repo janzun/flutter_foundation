@@ -21,16 +21,13 @@ EntitlementInfo _$EntitlementInfoFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$EntitlementInfo {
-  /// 资产标识
-  String get id => throw _privateConstructorUsedError;
-
   /// 权益类别: 'membership', 'points', 'quota'
   String get type => throw _privateConstructorUsedError;
 
   /// 业务代码: 'vip', 'standard_point', 'ai_quota'
   String get code => throw _privateConstructorUsedError;
 
-  /// 状态: 'active', 'expired', 'frozen'
+  /// 状态: 'active', 'expired', 'paused', 'frozen'
   String get status => throw _privateConstructorUsedError;
 
   /// 会员等级 (type = 'membership' 时有效)
@@ -44,9 +41,6 @@ mixin _$EntitlementInfo {
 
   /// 到期截止时间 (null 代表永久)
   DateTime? get expireAt => throw _privateConstructorUsedError;
-
-  /// 授权可使用的端白名单
-  List<String> get allowedPlatforms => throw _privateConstructorUsedError;
 
   /// Serializes this EntitlementInfo to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -66,7 +60,6 @@ abstract class $EntitlementInfoCopyWith<$Res> {
   ) = _$EntitlementInfoCopyWithImpl<$Res, EntitlementInfo>;
   @useResult
   $Res call({
-    String id,
     String type,
     String code,
     String status,
@@ -74,7 +67,6 @@ abstract class $EntitlementInfoCopyWith<$Res> {
     String? billingCycle,
     double balance,
     DateTime? expireAt,
-    List<String> allowedPlatforms,
   });
 }
 
@@ -93,7 +85,6 @@ class _$EntitlementInfoCopyWithImpl<$Res, $Val extends EntitlementInfo>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
     Object? type = null,
     Object? code = null,
     Object? status = null,
@@ -101,15 +92,9 @@ class _$EntitlementInfoCopyWithImpl<$Res, $Val extends EntitlementInfo>
     Object? billingCycle = freezed,
     Object? balance = null,
     Object? expireAt = freezed,
-    Object? allowedPlatforms = null,
   }) {
     return _then(
       _value.copyWith(
-            id:
-                null == id
-                    ? _value.id
-                    : id // ignore: cast_nullable_to_non_nullable
-                        as String,
             type:
                 null == type
                     ? _value.type
@@ -145,11 +130,6 @@ class _$EntitlementInfoCopyWithImpl<$Res, $Val extends EntitlementInfo>
                     ? _value.expireAt
                     : expireAt // ignore: cast_nullable_to_non_nullable
                         as DateTime?,
-            allowedPlatforms:
-                null == allowedPlatforms
-                    ? _value.allowedPlatforms
-                    : allowedPlatforms // ignore: cast_nullable_to_non_nullable
-                        as List<String>,
           )
           as $Val,
     );
@@ -166,7 +146,6 @@ abstract class _$$EntitlementInfoImplCopyWith<$Res>
   @override
   @useResult
   $Res call({
-    String id,
     String type,
     String code,
     String status,
@@ -174,7 +153,6 @@ abstract class _$$EntitlementInfoImplCopyWith<$Res>
     String? billingCycle,
     double balance,
     DateTime? expireAt,
-    List<String> allowedPlatforms,
   });
 }
 
@@ -192,7 +170,6 @@ class __$$EntitlementInfoImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? id = null,
     Object? type = null,
     Object? code = null,
     Object? status = null,
@@ -200,15 +177,9 @@ class __$$EntitlementInfoImplCopyWithImpl<$Res>
     Object? billingCycle = freezed,
     Object? balance = null,
     Object? expireAt = freezed,
-    Object? allowedPlatforms = null,
   }) {
     return _then(
       _$EntitlementInfoImpl(
-        id:
-            null == id
-                ? _value.id
-                : id // ignore: cast_nullable_to_non_nullable
-                    as String,
         type:
             null == type
                 ? _value.type
@@ -244,11 +215,6 @@ class __$$EntitlementInfoImplCopyWithImpl<$Res>
                 ? _value.expireAt
                 : expireAt // ignore: cast_nullable_to_non_nullable
                     as DateTime?,
-        allowedPlatforms:
-            null == allowedPlatforms
-                ? _value._allowedPlatforms
-                : allowedPlatforms // ignore: cast_nullable_to_non_nullable
-                    as List<String>,
       ),
     );
   }
@@ -259,7 +225,6 @@ class __$$EntitlementInfoImplCopyWithImpl<$Res>
 @JsonSerializable(explicitToJson: true, fieldRename: FieldRename.snake)
 class _$EntitlementInfoImpl implements _EntitlementInfo {
   const _$EntitlementInfoImpl({
-    required this.id,
     required this.type,
     required this.code,
     this.status = 'active',
@@ -267,21 +232,10 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
     this.billingCycle,
     this.balance = 0.0,
     this.expireAt,
-    final List<String> allowedPlatforms = const <String>[
-      'android',
-      'ios',
-      'web',
-      'macos',
-      'windows',
-    ],
-  }) : _allowedPlatforms = allowedPlatforms;
+  });
 
   factory _$EntitlementInfoImpl.fromJson(Map<String, dynamic> json) =>
       _$$EntitlementInfoImplFromJson(json);
-
-  /// 资产标识
-  @override
-  final String id;
 
   /// 权益类别: 'membership', 'points', 'quota'
   @override
@@ -291,7 +245,7 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
   @override
   final String code;
 
-  /// 状态: 'active', 'expired', 'frozen'
+  /// 状态: 'active', 'expired', 'paused', 'frozen'
   @override
   @JsonKey()
   final String status;
@@ -313,22 +267,9 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
   @override
   final DateTime? expireAt;
 
-  /// 授权可使用的端白名单
-  final List<String> _allowedPlatforms;
-
-  /// 授权可使用的端白名单
-  @override
-  @JsonKey()
-  List<String> get allowedPlatforms {
-    if (_allowedPlatforms is EqualUnmodifiableListView)
-      return _allowedPlatforms;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_allowedPlatforms);
-  }
-
   @override
   String toString() {
-    return 'EntitlementInfo(id: $id, type: $type, code: $code, status: $status, tier: $tier, billingCycle: $billingCycle, balance: $balance, expireAt: $expireAt, allowedPlatforms: $allowedPlatforms)';
+    return 'EntitlementInfo(type: $type, code: $code, status: $status, tier: $tier, billingCycle: $billingCycle, balance: $balance, expireAt: $expireAt)';
   }
 
   @override
@@ -336,7 +277,6 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$EntitlementInfoImpl &&
-            (identical(other.id, id) || other.id == id) &&
             (identical(other.type, type) || other.type == type) &&
             (identical(other.code, code) || other.code == code) &&
             (identical(other.status, status) || other.status == status) &&
@@ -345,18 +285,13 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
                 other.billingCycle == billingCycle) &&
             (identical(other.balance, balance) || other.balance == balance) &&
             (identical(other.expireAt, expireAt) ||
-                other.expireAt == expireAt) &&
-            const DeepCollectionEquality().equals(
-              other._allowedPlatforms,
-              _allowedPlatforms,
-            ));
+                other.expireAt == expireAt));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
     runtimeType,
-    id,
     type,
     code,
     status,
@@ -364,7 +299,6 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
     billingCycle,
     balance,
     expireAt,
-    const DeepCollectionEquality().hash(_allowedPlatforms),
   );
 
   /// Create a copy of EntitlementInfo
@@ -386,7 +320,6 @@ class _$EntitlementInfoImpl implements _EntitlementInfo {
 
 abstract class _EntitlementInfo implements EntitlementInfo {
   const factory _EntitlementInfo({
-    required final String id,
     required final String type,
     required final String code,
     final String status,
@@ -394,15 +327,10 @@ abstract class _EntitlementInfo implements EntitlementInfo {
     final String? billingCycle,
     final double balance,
     final DateTime? expireAt,
-    final List<String> allowedPlatforms,
   }) = _$EntitlementInfoImpl;
 
   factory _EntitlementInfo.fromJson(Map<String, dynamic> json) =
       _$EntitlementInfoImpl.fromJson;
-
-  /// 资产标识
-  @override
-  String get id;
 
   /// 权益类别: 'membership', 'points', 'quota'
   @override
@@ -412,7 +340,7 @@ abstract class _EntitlementInfo implements EntitlementInfo {
   @override
   String get code;
 
-  /// 状态: 'active', 'expired', 'frozen'
+  /// 状态: 'active', 'expired', 'paused', 'frozen'
   @override
   String get status;
 
@@ -431,10 +359,6 @@ abstract class _EntitlementInfo implements EntitlementInfo {
   /// 到期截止时间 (null 代表永久)
   @override
   DateTime? get expireAt;
-
-  /// 授权可使用的端白名单
-  @override
-  List<String> get allowedPlatforms;
 
   /// Create a copy of EntitlementInfo
   /// with the given fields replaced by the non-null parameter values.
