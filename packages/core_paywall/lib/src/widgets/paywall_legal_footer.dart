@@ -36,13 +36,18 @@ class PaywallLegalFooter extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          disclaimer,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 11,
-            height: 1.4,
-            color: secondaryColor.withValues(alpha: 0.85),
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 32),
+          child: Center(
+            child: Text(
+              disclaimer,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.4,
+                color: secondaryColor.withValues(alpha: 0.85),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 8),

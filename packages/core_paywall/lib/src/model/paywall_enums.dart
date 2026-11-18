@@ -25,7 +25,10 @@ enum PaywallTemplate {
   consumable,
 
   /// 单品直购紧凑弹窗 (适合单次付费解锁场景)
-  singlePurchase;
+  singlePurchase,
+
+  /// Free vs. Pro 极简权益对比表 (适合工具/效率/AI 类 App 全屏转化)
+  comparison;
 
   static PaywallTemplate fromString(
     String? value, {

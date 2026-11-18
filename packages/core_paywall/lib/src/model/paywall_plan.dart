@@ -42,9 +42,14 @@ class PaywallFeature {
   final IconData? icon;
   final String text;
 
+  final IconData? icon;
+  final String text;
+  final bool includedInFree;
+
   const PaywallFeature({
     this.icon,
     required this.text,
+    this.includedInFree = false,
   });
 }
 

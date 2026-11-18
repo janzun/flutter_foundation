@@ -7,6 +7,7 @@ import 'model/paywall_result.dart';
 import 'model/paywall_strings.dart';
 import 'model/paywall_theme.dart';
 import 'templates/classic_paywall_view.dart';
+import 'templates/comparison_paywall_view.dart';
 import 'templates/consumable_paywall_view.dart';
 import 'templates/single_purchase_sheet_view.dart';
 import 'templates/timeline_paywall_view.dart';
@@ -16,7 +17,51 @@ import 'widgets/paywall_retention_dialog.dart';
 class Paywall {
   Paywall._();
 
-  /// 唤起付费墙，返回最终结果（`purchased` / `restored` / `dismissed`）。
+  /// 全屏页面模式启动付费墙，返回最终结果（`purchased` / `restored` / `dismissed`）。
+  static Future<PaywallResult> start(
+    BuildContext context, {
+    required String placement,
+    required List<PaywallPlan> plans,
+    required PaywallLinks links,
+    required PaywallPurchaseHandler onPurchase,
+    PaywallRestoreHandler? onRestore,
+    PaywallBeforePurchaseHook? onBeforePurchase,
+    PaywallEventCallback? onEvent,
+    PaywallTemplate template = PaywallTemplate.classic,
+    PaywallChannel channel = PaywallChannel.overseas,
+    PaywallStrings? strings,
+    PaywallTheme theme = const PaywallTheme(),
+    List<PaywallFeature> features = const [],
+    String? initialSelectedPlanId,
+    String? currentBalanceText,
+    RetentionConfig? retentionConfig,
+    WidgetBuilder? heroBuilder,
+    WidgetBuilder? contentBuilder,
+  }) {
+    return _launch(
+      context,
+      placement: placement,
+      plans: plans,
+      links: links,
+      onPurchase: onPurchase,
+      onRestore: onRestore,
+      onBeforePurchase: onBeforePurchase,
+      onEvent: onEvent,
+      template: template,
+      presentation: PaywallPresentation.fullScreen,
+      channel: channel,
+      strings: strings,
+      theme: theme,
+      features: features,
+      initialSelectedPlanId: initialSelectedPlanId,
+      currentBalanceText: currentBalanceText,
+      retentionConfig: retentionConfig,
+      heroBuilder: heroBuilder,
+      contentBuilder: contentBuilder,
+    );
+  }
+
+  /// 底部弹窗模式唤起付费墙，返回最终结果（`purchased` / `restored` / `dismissed`）。
   static Future<PaywallResult> show(
     BuildContext context, {
     required String placement,
@@ -27,11 +72,54 @@ class Paywall {
     PaywallBeforePurchaseHook? onBeforePurchase,
     PaywallEventCallback? onEvent,
     PaywallTemplate template = PaywallTemplate.classic,
-    PaywallPresentation presentation = PaywallPresentation.auto,
     PaywallChannel channel = PaywallChannel.overseas,
     PaywallStrings? strings,
     PaywallTheme theme = const PaywallTheme(),
     List<PaywallFeature> features = const [],
+    String? initialSelectedPlanId,
+    String? currentBalanceText,
+    RetentionConfig? retentionConfig,
+    WidgetBuilder? heroBuilder,
+    WidgetBuilder? contentBuilder,
+  }) {
+    return _launch(
+      context,
+      placement: placement,
+      plans: plans,
+      links: links,
+      onPurchase: onPurchase,
+      onRestore: onRestore,
+      onBeforePurchase: onBeforePurchase,
+      onEvent: onEvent,
+      template: template,
+      presentation: PaywallPresentation.bottomSheet,
+      channel: channel,
+      strings: strings,
+      theme: theme,
+      features: features,
+      initialSelectedPlanId: initialSelectedPlanId,
+      currentBalanceText: currentBalanceText,
+      retentionConfig: retentionConfig,
+      heroBuilder: heroBuilder,
+      contentBuilder: contentBuilder,
+    );
+  }
+
+  static Future<PaywallResult> _launch(
+    BuildContext context, {
+    required String placement,
+    required List<PaywallPlan> plans,
+    required PaywallLinks links,
+    required PaywallPurchaseHandler onPurchase,
+    PaywallRestoreHandler? onRestore,
+    PaywallBeforePurchaseHook? onBeforePurchase,
+    PaywallEventCallback? onEvent,
+    required PaywallTemplate template,
+    required PaywallPresentation presentation,
+    required PaywallChannel channel,
+    PaywallStrings? strings,
+    required PaywallTheme theme,
+    required List<PaywallFeature> features,
     String? initialSelectedPlanId,
     String? currentBalanceText,
     RetentionConfig? retentionConfig,
@@ -195,6 +283,17 @@ class _PaywallHostState extends State<_PaywallHost> {
           switch (widget.controller.template) {
             case PaywallTemplate.classic:
               return ClassicPaywallView(
+                controller: widget.controller,
+                theme: widget.theme,
+                links: widget.links,
+                features: widget.features,
+                heroBuilder: widget.heroBuilder,
+                onClose: _handleClose,
+                onPurchase: _handlePurchase,
+                onRestore: _handleRestore,
+              );
+            case PaywallTemplate.comparison:
+              return ComparisonPaywallView(
                 controller: widget.controller,
                 theme: widget.theme,
                 links: widget.links,

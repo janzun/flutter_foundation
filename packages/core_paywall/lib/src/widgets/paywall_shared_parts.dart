@@ -45,6 +45,8 @@ class PaywallCtaButton extends StatelessWidget {
               )
             : Text(
                 label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
