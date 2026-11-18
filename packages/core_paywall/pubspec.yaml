@@ -1,6 +1,6 @@
 name: core_paywall
 description: "Zero-dependency, SKU-driven high-conversion Paywall UI and compliance toolkit for Flutter."
-version: 1.0.0
+version: 1.1.0
 publish_to: 'none'
 
 environment:

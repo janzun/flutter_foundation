@@ -1,10 +1,10 @@
 # core_paywall
 
 ## 1. 介绍
-零外部包依赖、由 SKU 商业形态驱动的高转化海外付费墙与合规套件。支持动态下发 4 套黄金模板（经典多套餐、透明试用时间轴、消耗型积分网格、单品直购弹窗），内置基于计费类型自动切换的 Apple/Google 合规页脚、退出挽留拦截器、全链路漏斗事件回调以及购买前拦截钩子（支持游客转正引导）。
+零外部包依赖、由 SKU 商业形态驱动的高转化海外付费墙与合规套件。支持动态下发 5 套黄金模板（经典多套餐、透明试用时间轴、消耗型积分网格、单品直购弹窗、Free vs. Pro 权益对比表），内置基于计费类型自动切换的 Apple/Google 合规页脚、退出挽留拦截器、全链路漏斗事件回调以及购买前拦截钩子（支持游客转正引导）。
 
 ## 2. 最新版本 Tag
-`paywall@1.0.0`
+`paywall@1.1.0`
 
 ## 3. 接入方式
 在项目 `pubspec.yaml` 中通过 Git 形式引入：
@@ -14,7 +14,7 @@ dependencies:
     git:
       url: git@github.com:janzun/flutter_foundation.git
       path: packages/core_paywall
-      ref: paywall@1.0.0
+      ref: paywall@1.1.0
 ```
 
 ## 4. 必要配置
@@ -25,7 +25,29 @@ dependencies:
 ### 5.1 全局门面入口 `Paywall`
 ```dart
 class Paywall {
-  /// 唤起付费墙，返回关闭后的结果 (purchased / restored / dismissed)
+  /// 全屏页面模式启动付费墙，返回关闭后的结果 (purchased / restored / dismissed)
+  static Future<PaywallResult> start(
+    BuildContext context, {
+    required String placement,
+    required List<PaywallPlan> plans,
+    required PaywallLinks links,
+    required PaywallPurchaseHandler onPurchase,
+    PaywallRestoreHandler? onRestore,
+    PaywallBeforePurchaseHook? onBeforePurchase,
+    PaywallEventCallback? onEvent,
+    PaywallTemplate template = PaywallTemplate.classic,
+    PaywallChannel channel = PaywallChannel.overseas,
+    PaywallStrings? strings,
+    PaywallTheme theme = const PaywallTheme(),
+    List<PaywallFeature> features = const [],
+    String? initialSelectedPlanId,
+    String? currentBalanceText,
+    RetentionConfig? retentionConfig,
+    WidgetBuilder? heroBuilder,
+    WidgetBuilder? contentBuilder,
+  });
+
+  /// 底部弹窗模式唤起付费墙，返回关闭后的结果 (purchased / restored / dismissed)
   static Future<PaywallResult> show(
     BuildContext context, {
     required String placement,
@@ -36,7 +58,6 @@ class Paywall {
     PaywallBeforePurchaseHook? onBeforePurchase,
     PaywallEventCallback? onEvent,
     PaywallTemplate template = PaywallTemplate.classic,
-    PaywallPresentation presentation = PaywallPresentation.auto,
     PaywallChannel channel = PaywallChannel.overseas,
     PaywallStrings? strings,
     PaywallTheme theme = const PaywallTheme(),
@@ -93,7 +114,7 @@ class PaywallController extends ChangeNotifier {
 enum PlanBillingType { autoRenewable, nonRenewing, lifetime, consumable }
 
 enum PaywallTemplate {
-  classic, timeline, consumable, singlePurchase;
+  classic, timeline, consumable, singlePurchase, comparison;
   static PaywallTemplate fromString(String? value, {PaywallTemplate fallback = PaywallTemplate.classic});
 }
 
