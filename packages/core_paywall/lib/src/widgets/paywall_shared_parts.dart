@@ -135,3 +135,37 @@ class PaywallErrorBanner extends StatelessWidget {
     );
   }
 }
+
+/// SKU 加载中的骨架占位列表。
+class PaywallPlansSkeleton extends StatelessWidget {
+  final PaywallTheme theme;
+  final int count;
+
+  const PaywallPlansSkeleton({
+    super.key,
+    required this.theme,
+    this.count = 2,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = Theme.of(context).dividerColor;
+    final fillColor = theme.resolveSecondaryText(context).withValues(alpha: 0.08);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < count; i++) ...[
+          Container(
+            height: 60,
+            decoration: BoxDecoration(
+              color: fillColor,
+              borderRadius: BorderRadius.circular(theme.cardRadius),
+              border: Border.all(color: borderColor),
+            ),
+          ),
+          if (i < count - 1) const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}

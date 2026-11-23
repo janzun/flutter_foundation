@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../model/paywall_enums.dart';
@@ -17,7 +19,7 @@ typedef PaywallEventCallback = void Function(PaywallEvent event);
 class PaywallController extends ChangeNotifier {
   final String placement;
   final PaywallTemplate template;
-  final List<PaywallPlan> plans;
+  List<PaywallPlan> _plans = const [];
   final PaywallStrings strings;
   final PaywallPurchaseHandler onPurchase;
   final PaywallRestoreHandler? onRestore;
@@ -26,15 +28,17 @@ class PaywallController extends ChangeNotifier {
   final RetentionConfig? retentionConfig;
 
   PaywallPlan? _selectedPlan;
+  bool _isLoadingPlans = false;
   bool _isPurchasing = false;
   bool _isRestoring = false;
+  bool _disposed = false;
   String? _errorMessage;
   bool _retentionShown = false;
 
   PaywallController({
     required this.placement,
     required this.template,
-    required this.plans,
+    required FutureOr<List<PaywallPlan>> plans,
     required this.strings,
     required this.onPurchase,
     this.onRestore,
@@ -43,24 +47,55 @@ class PaywallController extends ChangeNotifier {
     this.retentionConfig,
     String? initialSelectedPlanId,
   }) {
-    if (plans.isNotEmpty) {
+    if (plans is List<PaywallPlan>) {
+      _applyPlans(plans, initialSelectedPlanId: initialSelectedPlanId);
+    } else {
+      _isLoadingPlans = true;
+      plans.then((loaded) {
+        if (_disposed) return;
+        _isLoadingPlans = false;
+        _applyPlans(loaded, initialSelectedPlanId: initialSelectedPlanId);
+        notifyListeners();
+      }).catchError((Object error) {
+        if (_disposed) return;
+        _isLoadingPlans = false;
+        _errorMessage = error.toString();
+        notifyListeners();
+      });
+    }
+  }
+
+  void _applyPlans(
+    List<PaywallPlan> loaded, {
+    String? initialSelectedPlanId,
+  }) {
+    _plans = loaded;
+    if (_plans.isNotEmpty) {
       if (initialSelectedPlanId != null) {
-        _selectedPlan = plans.cast<PaywallPlan?>().firstWhere(
+        _selectedPlan = _plans.cast<PaywallPlan?>().firstWhere(
               (p) => p?.id == initialSelectedPlanId,
-              orElse: () => plans.first,
+              orElse: () => _plans.first,
             );
       } else {
-        _selectedPlan = plans.first;
+        _selectedPlan = _plans.first;
       }
     }
   }
 
+  List<PaywallPlan> get plans => _plans;
   PaywallPlan? get selectedPlan => _selectedPlan;
+  bool get isLoadingPlans => _isLoadingPlans;
   bool get isPurchasing => _isPurchasing;
   bool get isRestoring => _isRestoring;
   bool get isBusy => _isPurchasing || _isRestoring;
   String? get errorMessage => _errorMessage;
   bool get hasRetentionShown => _retentionShown;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   /// 是否应当显示恢复购买按钮（纯消耗型商品隐藏 Restore）
   bool get shouldShowRestore {

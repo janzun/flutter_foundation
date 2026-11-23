@@ -41,9 +41,6 @@ class PaywallPlan {
 class PaywallFeature {
   final IconData? icon;
   final String text;
-
-  final IconData? icon;
-  final String text;
   final bool includedInFree;
 
   const PaywallFeature({

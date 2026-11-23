@@ -97,7 +97,10 @@ class TimelinePaywallView extends StatelessWidget {
                       theme: theme,
                       isLast: true,
                     ),
-                    if (controller.plans.length > 1) ...[
+                    if (controller.isLoadingPlans) ...[
+                      const SizedBox(height: 20),
+                      PaywallPlansSkeleton(theme: theme, count: 1),
+                    ] else if (controller.plans.length > 1) ...[
                       const SizedBox(height: 20),
                       Row(
                         children: controller.plans.map((plan) {

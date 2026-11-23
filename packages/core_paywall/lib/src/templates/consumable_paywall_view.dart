@@ -92,7 +92,9 @@ class ConsumablePaywallView extends StatelessWidget {
             ],
             const SizedBox(height: 16),
             Flexible(
-              child: GridView.builder(
+              child: controller.isLoadingPlans
+                  ? PaywallPlansSkeleton(theme: theme)
+                  : GridView.builder(
                 shrinkWrap: true,
                 itemCount: controller.plans.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

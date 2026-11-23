@@ -128,7 +128,9 @@ class ClassicPaywallView extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 16),
-                    if (controller.plans.isEmpty)
+                    if (controller.isLoadingPlans)
+                      PaywallPlansSkeleton(theme: theme)
+                    else if (controller.plans.isEmpty)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 24),
                         child: Text(

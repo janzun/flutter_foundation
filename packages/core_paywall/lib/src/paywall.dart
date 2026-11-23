@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'controller/paywall_controller.dart';
@@ -21,7 +23,7 @@ class Paywall {
   static Future<PaywallResult> start(
     BuildContext context, {
     required String placement,
-    required List<PaywallPlan> plans,
+    required FutureOr<List<PaywallPlan>> plans,
     required PaywallLinks links,
     required PaywallPurchaseHandler onPurchase,
     PaywallRestoreHandler? onRestore,
@@ -65,7 +67,7 @@ class Paywall {
   static Future<PaywallResult> show(
     BuildContext context, {
     required String placement,
-    required List<PaywallPlan> plans,
+    required FutureOr<List<PaywallPlan>> plans,
     required PaywallLinks links,
     required PaywallPurchaseHandler onPurchase,
     PaywallRestoreHandler? onRestore,
@@ -108,7 +110,7 @@ class Paywall {
   static Future<PaywallResult> _launch(
     BuildContext context, {
     required String placement,
-    required List<PaywallPlan> plans,
+    required FutureOr<List<PaywallPlan>> plans,
     required PaywallLinks links,
     required PaywallPurchaseHandler onPurchase,
     PaywallRestoreHandler? onRestore,

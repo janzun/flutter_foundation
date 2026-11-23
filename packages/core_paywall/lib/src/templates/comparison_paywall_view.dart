@@ -58,7 +58,7 @@ class ComparisonPaywallView extends StatelessWidget {
                       const SizedBox(height: 16),
                     ] else ...[
                       Text(
-                        controller.strings.headline,
+                        controller.strings.title,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 24,
@@ -66,12 +66,15 @@ class ComparisonPaywallView extends StatelessWidget {
                           color: textColor,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        controller.strings.subheadline,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: secondaryColor),
-                      ),
+                      if (controller.strings.subtitle != null &&
+                          controller.strings.subtitle!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          controller.strings.subtitle!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 14, color: secondaryColor),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                     ],
                     if (features.isNotEmpty) ...[
@@ -80,21 +83,24 @@ class ComparisonPaywallView extends StatelessWidget {
                         primary: primary,
                         textColor: textColor,
                         secondaryColor: secondaryColor,
-                        cardColor: theme.resolveCardBackground(context),
-                        borderColor: theme.resolveBorder(context),
+                        cardColor: theme.resolveCard(context),
+                        borderColor: Theme.of(context).dividerColor,
                         cardRadius: theme.cardRadius,
                       ),
                       const SizedBox(height: 20),
                     ],
-                    for (final plan in controller.plans) ...[
-                      _ComparisonPlanTile(
-                        plan: plan,
-                        selected: selected?.id == plan.id,
-                        theme: theme,
-                        onTap: () => controller.selectPlan(plan),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
+                    if (controller.isLoadingPlans)
+                      PaywallPlansSkeleton(theme: theme)
+                    else
+                      for (final plan in controller.plans) ...[
+                        _ComparisonPlanTile(
+                          plan: plan,
+                          selected: selected?.id == plan.id,
+                          theme: theme,
+                          onTap: () => controller.selectPlan(plan),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                   ],
                 ),
               ),
@@ -257,10 +263,10 @@ class _ComparisonPlanTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? primary.withValues(alpha: 0.08)
-              : theme.resolveCardBackground(context),
+              : theme.resolveCard(context),
           borderRadius: BorderRadius.circular(theme.cardRadius),
           border: Border.all(
-            color: selected ? primary : theme.resolveBorder(context),
+            color: selected ? primary : Theme.of(context).dividerColor,
             width: selected ? 1.8 : 1.0,
           ),
         ),
@@ -288,7 +294,7 @@ class _ComparisonPlanTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (plan.badge != null && plan.badge!.isNotEmpty) ...[
+                      if (plan.badgeText != null && plan.badgeText!.isNotEmpty) ...[
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -300,7 +306,7 @@ class _ComparisonPlanTile extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            plan.badge!,
+                            plan.badgeText!,
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -311,11 +317,11 @@ class _ComparisonPlanTile extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (plan.subtitle != null && plan.subtitle!.isNotEmpty)
+                  if (plan.description != null && plan.description!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
-                        plan.subtitle!,
+                        plan.description!,
                         style: TextStyle(fontSize: 12, color: secondaryColor),
                       ),
                     ),
